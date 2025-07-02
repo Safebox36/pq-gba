@@ -1,7 +1,6 @@
 #include "menu_controller.h"
 
 #include "bn_keypad.h"
-#include "bn_log.h"
 #include "bn_vector.h"
 #include "bn_regular_bg_ptr.h"
 #include "bn_regular_bg_items_menu_back.h"
@@ -10,17 +9,6 @@
 #include "bn_sprite_items_spr_button.h"
 #include "bn_sprite_text_generator.h"
 #include "font.h"
-
-bn::optional<bn::regular_bg_ptr> menu_desktop;
-bn::optional<bn::regular_bg_ptr> menu_main;
-bn::vector<bn::sprite_ptr, 5> button_new;
-bn::vector<bn::sprite_ptr, 5> button_load;
-bn::vector<bn::sprite_ptr, 32> text_sprites = bn::vector<bn::sprite_ptr, 2>();
-bn::sprite_text_generator text_generator = bn::sprite_text_generator(font_regular);
-
-int menu_controller::getSelectedOption() {
-    return selectedOption;
-}
 
 void menu_controller::setSelectedOption(int option)
 {
@@ -35,52 +23,55 @@ void menu_controller::enter()
     menu_main->set_top_left_position(0, 0);
 
     button_new = bn::vector<bn::sprite_ptr, 5>();
-    for (int i = 0; i < 5; i++)
-    {
-        switch (i)
-        {
-            case 0:
-                button_new.push_back(bn::sprite_items::spr_button.create_sprite(3));
-                break;
-            case 4:
-                button_new.push_back(bn::sprite_items::spr_button.create_sprite(5));
-                break;
-            default:
-                button_new.push_back(bn::sprite_items::spr_button.create_sprite(4));
-                break;
-        }
-        button_new[i].set_top_left_position(116 + (i * 16), 52);
-    }
     button_load = bn::vector<bn::sprite_ptr, 5>();
     for (int i = 0; i < 5; i++)
     {
         switch (i)
         {
             case 0:
+                button_new.push_back(bn::sprite_items::spr_button.create_sprite(3));
                 button_load.push_back(bn::sprite_items::spr_button.create_sprite(0));
                 break;
             case 4:
+                button_new.push_back(bn::sprite_items::spr_button.create_sprite(5));
                 button_load.push_back(bn::sprite_items::spr_button.create_sprite(2));
                 break;
             default:
+                button_new.push_back(bn::sprite_items::spr_button.create_sprite(4));
                 button_load.push_back(bn::sprite_items::spr_button.create_sprite(1));
                 break;
         }
+        button_new[i].set_top_left_position(116 + (i * 16), 52);
         button_load[i].set_top_left_position(116 + (i * 16), 84);
     }
 
-    text_generator.set_center_alignment();
-    text_generator.generate_top_left(button_new[0].top_left_position() + bn::fixed_point(80 / 2, 6), "New Game", text_sprites);
-    text_generator.generate_top_left(button_load[0].top_left_position() + bn::fixed_point(80 / 2, 6), "Load Game", text_sprites);
+    text_sprites =  bn::vector<bn::sprite_ptr, 4>();
+    text_generator = bn::sprite_text_generator(font_regular);
+    text_generator->set_center_alignment();
+    text_generator->generate_top_left(button_new[0].top_left_position() + bn::fixed_point(80 / 2, 6), "New Game", text_sprites);
+    text_generator->generate_top_left(button_load[0].top_left_position() + bn::fixed_point(80 / 2, 6), "Load Game", text_sprites);
     for (auto c : text_sprites)
     {
         c.set_z_order(-10);
     }
 }
 
-void menu_controller::update()
+void menu_controller::update(int& nextScreen)
 {
-    if (bn::keypad::up_pressed())
+    if (bn::keypad::a_pressed())
+    {
+        switch (selectedOption)
+        {
+            case 0:
+                nextScreen = 1;
+                exit();
+                break;
+            case 1:
+                exit();
+                break;
+        }
+    }
+    else if (bn::keypad::up_pressed())
     {
         setSelectedOption(0);
         for (int i = 0; i < 5; i++)
@@ -136,4 +127,6 @@ void menu_controller::exit()
     menu_main.reset();
     button_new.clear();
     button_load.clear();
+    text_sprites.clear();
+    text_generator.reset();
 }
