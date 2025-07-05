@@ -1,14 +1,16 @@
 #include "bn_core.h"
+
+#include "player_struct.h"
+#include "menu_controller.h"
 #include "create_controller.h"
 #include "game_controller.h"
-
-#include "menu_controller.h"
 
 int main()
 {
     bn::core::init();
     int activeScreen = 0;
     int nextScreen = 0;
+    player_struct player = player_struct();
     menu_controller menu;
     create_controller create;
     // game_controller game;
@@ -22,7 +24,7 @@ int main()
                 menu.update(nextScreen);
                 break;
             case 1:
-                create.update(nextScreen);
+                create.update(nextScreen, player);
                 break;
         }
         if (activeScreen != nextScreen)
@@ -34,7 +36,7 @@ int main()
                     activeScreen = 0;
                     break;
                 case 1:
-                    create.enter();
+                    create.enter(player);
                     activeScreen = 1;
                     break;
                 // case 2:
