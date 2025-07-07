@@ -29,6 +29,7 @@ class create_controller
         bn::vector<bn::sprite_ptr, 48> bullet_titles;
         bn::vector<bn::string_view, 21> race_strings;
         bn::vector<bn::string_view, 18> class_strings;
+        bn::optional<bn::sprite_item> stat;
 
     public:
         bool incrementActiveTab();
@@ -39,6 +40,7 @@ class create_controller
         bool decrementHighlightedOptionY();
 
         void updateBullets(player_struct& player, bool refreshAll = false);
+        void updateLabels(player_struct& player);
         void drawTab1(player_struct& player);
         void drawTab2(player_struct& player);
         void drawTab3(player_struct& player);
