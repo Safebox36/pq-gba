@@ -1,10 +1,13 @@
 #include "menu_controller.h"
 
 #include "bn_keypad.h"
+#include "bn_log.h"
 #include "bn_vector.h"
 #include "bn_regular_bg_ptr.h"
 #include "bn_regular_bg_items_menu_back.h"
 #include "bn_regular_bg_items_menu_main.h"
+#include "bn_regular_bg_items_menu_load.h"
+#include "bn_regular_bg_animate_actions.h"
 #include "bn_sprite_ptr.h"
 #include "bn_sprite_items_spr_button.h"
 #include "bn_sprite_text_generator.h"
@@ -58,18 +61,37 @@ void menu_controller::enter()
 
 void menu_controller::update(int& nextScreen)
 {
+    if (isLoading)
+    {
+        if (loading_screen.has_value() == false)
+        {
+            loading_screen = bn::regular_bg_items::menu_load.create_bg();
+            loading_screen->set_priority(0);
+            loading_screen->set_top_left_position(0, 0);
+            loading_animation = bn::create_regular_bg_animate_action_once(loading_screen.value(), 0, bn::regular_bg_items::menu_load.map_item(), 0, 1, 2, 3);
+        }
+        else if (loading_animation.value().done())
+        {
+            switch (selectedOption)
+            {
+                case 0:
+                    nextScreen = 1;
+                    exit();
+                    break;
+                case 1:
+                    break;
+            }
+        }
+        else
+        {
+            loading_animation.value().update();
+        }
+        return;
+    }
+
     if (bn::keypad::a_pressed())
     {
-        switch (selectedOption)
-        {
-            case 0:
-                nextScreen = 1;
-                exit();
-                break;
-            case 1:
-                exit();
-                break;
-        }
+        isLoading = true;
     }
     else if (bn::keypad::up_pressed())
     {
@@ -129,4 +151,6 @@ void menu_controller::exit()
     button_load.clear();
     text_sprites.clear();
     text_generator.reset();
+    loading_animation.reset();
+    loading_screen.reset();
 }
