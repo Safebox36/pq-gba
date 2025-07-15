@@ -15,6 +15,7 @@
 #include "bn_string.h"
 #include "font.h"
 #include "player_struct.h"
+#include "data_strings.h"
 
 bool create_controller::incrementActiveTab()
 {
@@ -189,7 +190,7 @@ void create_controller::updateBullets(player_struct& player, bool refreshAll)
     }
 }
 
-void create_controller::updateLabels(player_struct& player)
+void create_controller::updateLabels(player_struct& player, data_strings& data_strings)
 {
     if (activeTab == 1)
     {
@@ -198,12 +199,12 @@ void create_controller::updateLabels(player_struct& player)
         text_generator->set_left_alignment();
         for (int i = 0; i < 5; i++)
         {
-            text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), race_strings[16 + i], bullet_titles);
+            text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.races[16 + i], bullet_titles);
         }
 
         for (int i = 0; i < 6; i++)
         {
-            text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), player.stat_strings[i], bullet_titles);
+            text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), data_strings.stats[i], bullet_titles);
         }
 
         text_generator->set_center_alignment();
@@ -212,7 +213,11 @@ void create_controller::updateLabels(player_struct& player)
         {
             text_generator->generate_top_left(240 - 8 - 16, 22 + 32 + (i * 16), bn::to_string<2>(player.stats[i]), bullet_titles);
         }
-        text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "Press (B) to re-roll.", bullet_titles);
+
+        text_generator->generate_top_left(240 - 8 - 16, 22 + 16, bn::to_string<3>(player.stats[0] + player.stats[1] + player.stats[2] + player.stats[3] + player.stats[4] + player.stats[5]), bullet_titles);
+
+        text_generator->generate_top_left(60, 22 + 32 + (16 * 4), "(B) to re-roll.", bullet_titles);
+        text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "(START) when sold.", bullet_titles);
     }
     else if (activeTab == 3)
     {
@@ -221,12 +226,12 @@ void create_controller::updateLabels(player_struct& player)
         text_generator->set_left_alignment();
         for (int i = 0; i < 2; i++)
         {
-            text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), class_strings[16 + i], bullet_titles);
+            text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.classes[16 + i], bullet_titles);
         }
 
         for (int i = 0; i < 6; i++)
         {
-            text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), player.stat_strings[i], bullet_titles);
+            text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), data_strings.stats[i], bullet_titles);
         }
 
         text_generator->set_center_alignment();
@@ -235,12 +240,16 @@ void create_controller::updateLabels(player_struct& player)
         {
             text_generator->generate_top_left(240 - 8 - 16, 22 + 32 + (i * 16), bn::to_string<2>(player.stats[i]), bullet_titles);
         }
-        text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "Press (B) to re-roll.", bullet_titles);
+
+        text_generator->generate_top_left(240 - 8 - 16, 22 + 16, bn::to_string<3>(player.stats[0] + player.stats[1] + player.stats[2] + player.stats[3] + player.stats[4] + player.stats[5]), bullet_titles);
+
+        text_generator->generate_top_left(60, 22 + 32 + (16 * 4), "(B) to re-roll.", bullet_titles);
+        text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "(START) when sold.", bullet_titles);
     }
 }
 
 
-void create_controller::drawTab1(player_struct& player)
+void create_controller::drawTab1(player_struct& player, data_strings& data_strings)
 {
     active_background->set_item(background_1.value());
     for (int i = 0; i < 4; i++)
@@ -261,18 +270,18 @@ void create_controller::drawTab1(player_struct& player)
         selectedOption = player.race_id == i;
         bullets.push_back(bullet->create_sprite(selectedOption + (i == 0 ? 2 : 0)));
         bullets[i].set_top_left_position(8, 20 + (i * 16));
-        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), race_strings[i], bullet_titles);
+        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.races[i], bullet_titles);
     }
     for (int i = 8; i < 16; i++)
     {
         selectedOption = player.race_id == i;
         bullets.push_back(bullet->create_sprite(selectedOption));
         bullets[i].set_top_left_position(120 + 8, 20 + ((i - 8) * 16));
-        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), race_strings[i], bullet_titles);
+        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.races[i], bullet_titles);
     }
 }
 
-void create_controller::drawTab2(player_struct& player)
+void create_controller::drawTab2(player_struct& player, data_strings& data_strings)
 {
     active_background->set_item(background_2.value());
     for (int i = 0; i < 4; i++)
@@ -292,12 +301,12 @@ void create_controller::drawTab2(player_struct& player)
         bool selectedOption = player.race_id == (i + 16);
         bullets.push_back(bullet->create_sprite(selectedOption + (i == 0 ? 2 : 0)));
         bullets[i].set_top_left_position(8, 20 + (i * 16));
-        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), race_strings[16 + i], bullet_titles);
+        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.races[16 + i], bullet_titles);
     }
 
     for (int i = 0; i < 6; i++)
     {
-        text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), player.stat_strings[i], bullet_titles);
+        text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), data_strings.stats[i], bullet_titles);
     }
 
     text_generator->set_center_alignment();
@@ -308,10 +317,16 @@ void create_controller::drawTab2(player_struct& player)
         bullets[bullets.size() - 1].set_top_left_position(240 - 8 - 32, 22 + 32 + (i * 16) - 1);
         text_generator->generate_top_left(240 - 8 - 16, 22 + 32 + (i * 16), bn::to_string<2>(player.stats[i]), bullet_titles);
     }
-    text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "Press (B) to re-roll.", bullet_titles);
+
+    bullets.push_back(stat->create_sprite());
+    bullets[bullets.size() - 1].set_top_left_position(240 - 8 - 32, 22 + 16 - 1);
+    text_generator->generate_top_left(240 - 8 - 16, 22 + 16, bn::to_string<3>(player.stats[0] + player.stats[1] + player.stats[2] + player.stats[3] + player.stats[4] + player.stats[5]), bullet_titles);
+
+    text_generator->generate_top_left(60, 22 + 32 + (16 * 4), "(B) to re-roll.", bullet_titles);
+    text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "(START) when sold.", bullet_titles);
 }
 
-void create_controller::drawTab3(player_struct& player)
+void create_controller::drawTab3(player_struct& player, data_strings& data_strings)
 {
     active_background->set_item(background_3.value());
     for (int i = 0; i < 4; i++)
@@ -332,18 +347,18 @@ void create_controller::drawTab3(player_struct& player)
         selectedOption = player.class_id == i;
         bullets.push_back(bullet->create_sprite(selectedOption + (i == 0 ? 2 : 0)));
         bullets[i].set_top_left_position(8, 20 + (i * 16));
-        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), class_strings[i], bullet_titles);
+        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.classes[i], bullet_titles);
     }
     for (int i = 8; i < 16; i++)
     {
         selectedOption = player.class_id == i;
         bullets.push_back(bullet->create_sprite(selectedOption));
         bullets[i].set_top_left_position(120 + 8, 20 + ((i - 8) * 16));
-        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), class_strings[i], bullet_titles);
+        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.classes[i], bullet_titles);
     }
 }
 
-void create_controller::drawTab4(player_struct& player)
+void create_controller::drawTab4(player_struct& player, data_strings& data_strings)
 {
     active_background->set_item(background_4.value());
     for (int i = 0; i < 4; i++)
@@ -363,12 +378,12 @@ void create_controller::drawTab4(player_struct& player)
         bool selectedOption = player.class_id == (i + 16);
         bullets.push_back(bullet->create_sprite(selectedOption + (i == 0 ? 2 : 0)));
         bullets[i].set_top_left_position(8, 20 + (i * 16));
-        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), class_strings[16 + i], bullet_titles);
+        text_generator->generate_top_left(bullets[i].top_left_position() + bn::fixed_point(20, 2), data_strings.classes[16 + i], bullet_titles);
     }
 
     for (int i = 0; i < 6; i++)
     {
-        text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), player.stat_strings[i], bullet_titles);
+        text_generator->generate_top_left(120 + 8, 22 + 32 + (i * 16), data_strings.stats[i], bullet_titles);
     }
 
     text_generator->set_center_alignment();
@@ -379,10 +394,15 @@ void create_controller::drawTab4(player_struct& player)
         bullets[bullets.size() - 1].set_top_left_position(240 - 8 - 32, 22 + 32 + (i * 16) - 1);
         text_generator->generate_top_left(240 - 8 - 16, 22 + 32 + (i * 16), bn::to_string<2>(player.stats[i]), bullet_titles);
     }
-    text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "Press (B) to re-roll.", bullet_titles);
+
+    bullets[bullets.size() - 1].set_top_left_position(240 - 8 - 32, 22 + 16 - 1);
+    text_generator->generate_top_left(240 - 8 - 16, 22 + 16, bn::to_string<3>(player.stats[0] + player.stats[1] + player.stats[2] + player.stats[3] + player.stats[4] + player.stats[5]), bullet_titles);
+
+    text_generator->generate_top_left(60, 22 + 32 + (16 * 4), "(B) to re-roll.", bullet_titles);
+    text_generator->generate_top_left(60, 22 + 32 + (16 * 5), "(START) when sold.", bullet_titles);
 }
 
-void create_controller::enter(player_struct& player)
+void create_controller::enter(player_struct& player, data_strings& data_strings)
 {
     background_1 = bn::regular_bg_items::scr_create_1;
     background_2 = bn::regular_bg_items::scr_create_2;
@@ -408,49 +428,6 @@ void create_controller::enter(player_struct& player)
     bullet = bn::sprite_items::spr_bullet;
     bullet_titles = bn::vector<bn::sprite_ptr, 24>();
 
-    race_strings = bn::vector<bn::string_view, 21>();
-    race_strings.push_back("Half Orc");
-    race_strings.push_back("Half Man");
-    race_strings.push_back("Half Halfling");
-    race_strings.push_back("Double Hobbit");
-    race_strings.push_back("Gobhobbit");
-    race_strings.push_back("Low Elf");
-    race_strings.push_back("Dung Elf");
-    race_strings.push_back("Talking Pony");
-    race_strings.push_back("Gyrognome");
-    race_strings.push_back("Lesser Dwarf");
-    race_strings.push_back("Crested Dwarf");
-    race_strings.push_back("Eel Man");
-    race_strings.push_back("Panda Man");
-    race_strings.push_back("Trans-Kobold");
-    race_strings.push_back("Ench'ed M'cycle");
-    race_strings.push_back("Will o' the Wisp");
-    race_strings.push_back("Battle-Finch");
-    race_strings.push_back("Double Wookiee");
-    race_strings.push_back("Skraeling");
-    race_strings.push_back("Demicanadian");
-    race_strings.push_back("Land Squid");
-
-    class_strings = bn::vector<bn::string_view, 18>();
-    class_strings.push_back("Ur-Paladin");
-    class_strings.push_back("Voodoo Princess");
-    class_strings.push_back("Robot Monk");
-    class_strings.push_back("Mu-Fu Monk");
-    class_strings.push_back("Mage Illusioner");
-    class_strings.push_back("Shiv-Knight");
-    class_strings.push_back("Inner Mason");
-    class_strings.push_back("Fighter/Organist");
-    class_strings.push_back("Puma Burgular");
-    class_strings.push_back("Runeloremaster");
-    class_strings.push_back("Hunter Strangler");
-    class_strings.push_back("Battle-Felon");
-    class_strings.push_back("Tickle-Mimic");
-    class_strings.push_back("Slow Poisoner");
-    class_strings.push_back("Bastard Lunatic");
-    class_strings.push_back("Jungle Clown");
-    class_strings.push_back("Birdrider");
-    class_strings.push_back("Vermineer");
-
     stat = bn::sprite_items::spr_stat;
 
     text_generator = bn::sprite_text_generator(font_regular);
@@ -466,10 +443,10 @@ void create_controller::enter(player_struct& player)
 
     player.roll();
 
-    drawTab1(player);
+    drawTab1(player, data_strings);
 }
 
-void create_controller::update(int& activeScreen, player_struct& player)
+void create_controller::update(int& nextScreen, player_struct& player, data_strings& data_strings)
 {
     if (bn::keypad::a_pressed())
     {
@@ -493,11 +470,17 @@ void create_controller::update(int& activeScreen, player_struct& player)
                 break;
         }
         player.roll();
-        updateLabels(player);
+        updateLabels(player, data_strings);
     }
     else if (bn::keypad::b_pressed())
     {
         player.roll();
+        updateLabels(player, data_strings);
+    }
+    else if (bn::keypad::start_pressed())
+    {
+        nextScreen = 2;
+        exit();
     }
     else if (bn::keypad::right_pressed())
     {
@@ -534,13 +517,13 @@ void create_controller::update(int& activeScreen, player_struct& player)
             switch (activeTab)
             {
                 case 1:
-                    drawTab2(player);
+                    drawTab2(player, data_strings);
                     break;
                 case 2:
-                    drawTab3(player);
+                    drawTab3(player, data_strings);
                     break;
                 case 3:
-                    drawTab4(player);
+                    drawTab4(player, data_strings);
                     break;
             }
         }
@@ -552,23 +535,32 @@ void create_controller::update(int& activeScreen, player_struct& player)
             switch (activeTab)
             {
                 case 0:
-                    drawTab1(player);
+                    drawTab1(player, data_strings);
                     break;
                 case 1:
-                    drawTab2(player);
+                    drawTab2(player, data_strings);
                     break;
                 case 2:
-                    drawTab3(player);
+                    drawTab3(player, data_strings);
                     break;
             }
         }
     }
 }
-//
-// void create_controller::exit()
-// {
-//     create_desktop.reset();
-//     create_main.reset();
-//     button_new.clear();
-//     button_load.clear();
-// }
+
+void create_controller::exit()
+{
+    background_1.reset();
+    background_2.reset();
+    background_3.reset();
+    background_4.reset();
+    active_background.reset();
+    tabs.reset();
+    titles.clear();
+    text_generator.reset();
+    title_strings.clear();
+    bullet.reset();
+    bullets.clear();
+    bullet_titles.clear();
+    stat.reset();
+}

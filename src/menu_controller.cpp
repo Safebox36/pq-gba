@@ -1,7 +1,6 @@
 #include "menu_controller.h"
 
 #include "bn_keypad.h"
-#include "bn_log.h"
 #include "bn_vector.h"
 #include "bn_regular_bg_ptr.h"
 #include "bn_regular_bg_items_menu_back.h"

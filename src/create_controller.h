@@ -8,6 +8,7 @@
 #include "bn_sprite_ptr.h"
 #include "bn_sprite_text_generator.h"
 #include "player_struct.h"
+#include "data_strings.h"
 
 class create_controller
 {
@@ -27,8 +28,6 @@ class create_controller
         bn::optional<bn::sprite_item> bullet;
         bn::vector<bn::sprite_ptr, 16> bullets;
         bn::vector<bn::sprite_ptr, 48> bullet_titles;
-        bn::vector<bn::string_view, 21> race_strings;
-        bn::vector<bn::string_view, 18> class_strings;
         bn::optional<bn::sprite_item> stat;
 
     public:
@@ -40,14 +39,16 @@ class create_controller
         bool decrementHighlightedOptionY();
 
         void updateBullets(player_struct& player, bool refreshAll = false);
-        void updateLabels(player_struct& player);
-        void drawTab1(player_struct& player);
-        void drawTab2(player_struct& player);
-        void drawTab3(player_struct& player);
-        void drawTab4(player_struct& player);
+        void updateLabels(player_struct& player, data_strings& data_strings);
+        void drawTab1(player_struct& player, data_strings& data_strings);
+        void drawTab2(player_struct& player, data_strings& data_strings);
+        void drawTab3(player_struct& player, data_strings& data_strings);
+        void drawTab4(player_struct& player, data_strings& data_strings);
 
-        void enter(player_struct& player);
-        void update(int& activeScreen, player_struct& player);
+        void rome(unsigned int n, unsigned int dn, bn::string_view& s, bn::string_view& sn);
+
+        void enter(player_struct& player, data_strings& data_strings);
+        void update(int& nextScreen, player_struct& player, data_strings& data_strings);
         void exit();
 };
 
