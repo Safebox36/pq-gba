@@ -10,6 +10,7 @@
 #include "bn_sprite_ptr.h"
 #include "bn_sprite_text_generator.h"
 #include "player_struct.h"
+#include "progress_struct.h"
 #include "data_strings.h"
 
 class game_controller
@@ -58,9 +59,38 @@ class game_controller
         bool rome(unsigned int& n, unsigned int dn, bn::string<7>& s, bn::string<7> ds);
         bn::string<7> intToRome(unsigned int n);
 
+        unsigned short levelUpTime(unsigned short level);
+        void task(bn::string<32> message, unsigned short duration, player_struct& player);//, unsigned short level);
+        void q(progress_struct data, player_struct& player);
+        void dequeueQ(player_struct& player);
+        void completeAct(player_struct& player, data_strings& data_strings);
+        bn::string<32> monsterTask(unsigned short& monster_level, player_struct& player, data_strings& data_strings);
+        bn::string<32> split(bn::string<32>& s, int field, char seperator);
+        bn::string<32> split(bn::string<32>& s, int field);
+        bn::string<32> toLower(bn::string<32>& s);
+        bn::string<32> toUpper(bn::string<32>& s);
+        bn::string<32> indefinite(const bn::string<32>& s, unsigned short count);
+        bn::string<32> definite(const bn::string<32>& s, unsigned short count);
+        bn::string<32> plural(const bn::string<32>& s);
+        bn::string<32> generateName(player_struct& player);
+        bn::string<32> sick(int m, bn::string<32> s);
+        bn::string<32> young(int m, bn::string<32> s);
+        bn::string<32> big(int m, bn::string<32> s);
+        bn::string<32> special(int m, bn::string<32> s);
+        item_struct specialItem(player_struct& player, data_strings& data_strings);
+        item_struct interestingItem(player_struct& player, data_strings& data_strings);
+        item_struct boringItem(player_struct& player, data_strings& data_strings);
+        void winItem(player_struct& player, data_strings& data_strings);
+        equipment_struct lPick(bn::vector<bn::string_view, 38>& equipment, bn::vector<short, 1> equipment_val, int goal, player_struct& player);
+        void winEquip(player_struct& player, data_strings& data_strings);
+        unsigned short equipPrice(player_struct& player);
+        void winSpell(player_struct& player, data_strings& data_strings);
+        void winStat(player_struct& player, data_strings& data_strings);
+
         void enter(player_struct& player, data_strings& data_strings);
         void update(player_struct& player, data_strings& data_strings);
-        void exit();
+        void tick(player_struct& player, data_strings& data_strings);
+        void saveGame(player_struct& player);
 };
 
 #endif //GAME_CONTROLLER_H
