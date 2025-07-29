@@ -10,7 +10,7 @@
 #include "level_struct.h"
 #include "quest_struct.h"
 #include "progress_struct.h"
-#include "task_struct.h"
+#include "tq_struct.h"
 
 struct player_struct
 {
@@ -23,21 +23,27 @@ struct player_struct
     bn::vector<equipment_struct, 11> equipment;
     bn::vector<item_struct, 1> inventory;
 
-    task_struct task_data;
-    // level_struct exp;
-    // level_struct enc;
-    // unsigned char plot = 0;
+    tq_struct task_data = tq_struct("", 0);
+    tq_struct quest_data = tq_struct("", 0);
+    level_struct task_prog = level_struct(0, 1);
+    level_struct quest_prog = level_struct(0, 1);
+    level_struct exp = level_struct(0, 1);
+    level_struct enc = level_struct(0, 1);
+    level_struct plot = level_struct(0, 1);
     // level_struct quest;
-    // bn::deque<quest_struct, 16> quest_queue;
+    bn::deque<quest_struct, 16> quest_queue = bn::deque<quest_struct, 16>();
+    bn::deque<quest_struct, 16> plot_queue = bn::deque<quest_struct, 16>();
     // unsigned char task = 0;
-    // bn::deque<progress_struct, 8> message_queue;
+    bn::deque<progress_struct, 8> message_queue = bn::deque<progress_struct, 8>();
     // level_struct progress;
 
     bn::random rng;
+    unsigned char elapsed;
 
     player_struct()
     {
         rng = bn::random();
+        elapsed = 0;
 
         stats = bn::vector<unsigned int, 8>();
         for (int i = 0; i < 8; i++)
@@ -49,7 +55,6 @@ struct player_struct
         equipment = bn::vector<equipment_struct, 11>();
         inventory = bn::vector<item_struct, 1>();
 
-        // exp = level_struct(0, 1);
         // enc = level_struct(0, 1);
         // quest = level_struct(0, 1);
         // quest_queue = bn::deque<quest_struct, 16>();

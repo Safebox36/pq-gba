@@ -33,6 +33,7 @@ class data_strings
         bn::vector<bn::string_view, 231> items_monster = bn::vector<bn::string_view, 231>();
         bn::vector<unsigned char, 231> items_monster_val = bn::vector<unsigned char, 231>();
         bn::vector<bn::string_view, 9> titles = bn::vector<bn::string_view, 9>();
+        bn::vector<bn::string_view, 13> titles_impressive = bn::vector<bn::string_view, 13>();
 
         data_strings()
         {
@@ -65,7 +66,7 @@ class data_strings
             classes.push_back("Mage Illusioner");
             classes.push_back("Shiv-Knight");
             classes.push_back("Inner Mason");
-            classes.push_back("Fighter/Organist");
+            classes.push_back("Fighter|Organist");
             classes.push_back("Puma Burgular");
             classes.push_back("Runeloremaster");
             classes.push_back("Hunter Strangler");
@@ -94,43 +95,43 @@ class data_strings
             spells.push_back("Seasick");
             spells.push_back("Shoelaces");
             spells.push_back("Inoculate");
-            spells.push_back("Cone of/    Annoyance");
+            spells.push_back("Cone of|    Annoyance");
             spells.push_back("Magnetic Orb");
-            spells.push_back("Invisible/    Hands");
-            spells.push_back("Revolting/    Cloud");
-            spells.push_back("Aqueous/    Humor");
-            spells.push_back("Spectral/    Miasma");
+            spells.push_back("Invisible|    Hands");
+            spells.push_back("Revolting|    Cloud");
+            spells.push_back("Aqueous|    Humor");
+            spells.push_back("Spectral|    Miasma");
             spells.push_back("Clever Fellow");
             spells.push_back("Lockjaw");
-            spells.push_back("History/    Lesson");
+            spells.push_back("History|    Lesson");
             spells.push_back("Hydrophobia");
             spells.push_back("Big Sister");
             spells.push_back("Cone of Paste");
             spells.push_back("Mulligan");
-            spells.push_back("Nestor's/    Bright Idea");
+            spells.push_back("Nestor's|    Bright Idea");
             spells.push_back("Holy Batpole");
-            spells.push_back("Tumor/    (Benign)");
+            spells.push_back("Tumor|    (Benign)");
             spells.push_back("Braingate");
             spells.push_back("Nonplus");
-            spells.push_back("Animate/    Nightstand");
-            spells.push_back("Eye of the/    Troglodyte");
+            spells.push_back("Animate|    Nightstand");
+            spells.push_back("Eye of the|    Troglodyte");
             spells.push_back("Curse Name");
             spells.push_back("Dropsy");
-            spells.push_back("Vitreous/    Humor");
-            spells.push_back("Roger's Grand/    Illusion");
+            spells.push_back("Vitreous|    Humor");
+            spells.push_back("Roger's Grand|    Illusion");
             spells.push_back("Covet");
             spells.push_back("Astral Miasma");
-            spells.push_back("Spectral/    Oyster");
+            spells.push_back("Spectral|    Oyster");
             spells.push_back("Acrid Hands");
             spells.push_back("Angioplasty");
-            spells.push_back("Grognor's Big/    Day Off");
-            spells.push_back("Tumor/    (Malignant)");
+            spells.push_back("Grognor's Big|    Day Off");
+            spells.push_back("Tumor|    (Malignant)");
             spells.push_back("Animate Tunic");
             spells.push_back("Ursine Armor");
             spells.push_back("Holy Roller");
             spells.push_back("Tonsillectomy");
             spells.push_back("Curse Family");
-            spells.push_back("Infinite/    Confusion");
+            spells.push_back("Infinite|    Confusion");
 
             equipment_titles.push_back("Weapon");
             equipment_titles.push_back("Shield");
@@ -1032,6 +1033,20 @@ class data_strings
             titles.push_back("Chief");
             titles.push_back("Admiral");
             titles.push_back("Saint");
+
+            titles_impressive.push_back("King");
+            titles_impressive.push_back("Queen");
+            titles_impressive.push_back("Lord");
+            titles_impressive.push_back("Lady");
+            titles_impressive.push_back("Viceroy");
+            titles_impressive.push_back("Mayor");
+            titles_impressive.push_back("Prince");
+            titles_impressive.push_back("Princess");
+            titles_impressive.push_back("Chief");
+            titles_impressive.push_back("Boss");
+            titles_impressive.push_back("Archbishop");
+            titles_impressive.push_back("Baron");
+            titles_impressive.push_back("Comptroller");
         }
 
         bool isSpellMultiline(unsigned int i)

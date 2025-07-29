@@ -13,9 +13,9 @@ struct progress_struct
 
     progress_type typeId;
     unsigned char duration;
-    bn::string<32> message;
+    bn::string<128> message;
 
-    progress_struct(progress_type _typeId, unsigned char _duration, bn::string<32> _message)
+    progress_struct(progress_type _typeId, unsigned char _duration, bn::string<128> _message)
     {
         typeId = _typeId;
         duration = _duration;

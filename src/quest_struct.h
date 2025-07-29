@@ -4,10 +4,10 @@
 #include "bn_string.h"
 
 struct quest_struct {
-    bn::string<32> desc;
+    bn::string<128> desc;
     bool complete;
 
-    quest_struct(bn::string<32> _desc)
+    quest_struct(bn::string<128> _desc)
     {
         desc = _desc;
         complete = false;
