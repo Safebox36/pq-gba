@@ -1,6 +1,7 @@
 #ifndef PLAYER_STRUCT_H
 #define PLAYER_STRUCT_H
 
+#include "bn_fixed.h"
 #include "bn_vector.h"
 #include "bn_deque.h"
 #include "bn_random.h"
@@ -18,48 +19,31 @@ struct player_struct
     unsigned short class_id = 0;
     unsigned short level = 0;
 
-    bn::vector<unsigned int, 8> stats;
-    bn::vector<spell_struct, 45> spells;
-    bn::vector<equipment_struct, 11> equipment;
-    bn::vector<item_struct, 1> inventory;
+    bn::vector<unsigned int, 8> stats = bn::vector<unsigned int, 8>();
+    bn::vector<spell_struct, 45> spells = bn::vector<spell_struct, 45>();
+    bn::vector<equipment_struct, 11> equipment = bn::vector<equipment_struct, 11>();
+    bn::vector<item_struct, 1> inventory = bn::vector<item_struct, 1>();
 
     tq_struct task_data = tq_struct("", 0);
     tq_struct quest_data = tq_struct("", 0);
     level_struct task_prog = level_struct(0, 1);
     level_struct quest_prog = level_struct(0, 1);
+    level_struct plot_prog = level_struct(0, 1);
     level_struct exp = level_struct(0, 1);
     level_struct enc = level_struct(0, 1);
-    level_struct plot = level_struct(0, 1);
-    // level_struct quest;
     bn::deque<quest_struct, 16> quest_queue = bn::deque<quest_struct, 16>();
     bn::deque<quest_struct, 16> plot_queue = bn::deque<quest_struct, 16>();
-    // unsigned char task = 0;
     bn::deque<progress_struct, 8> message_queue = bn::deque<progress_struct, 8>();
-    // level_struct progress;
+    bn::string<64> kill = bn::string<64>();
 
-    bn::random rng;
-    unsigned char elapsed;
+    bn::random rng = bn::random();
 
     player_struct()
     {
-        rng = bn::random();
-        elapsed = 0;
-
-        stats = bn::vector<unsigned int, 8>();
         for (int i = 0; i < 8; i++)
         {
             stats.push_back(0);
         }
-
-        spells = bn::vector<spell_struct, 45>();
-        equipment = bn::vector<equipment_struct, 11>();
-        inventory = bn::vector<item_struct, 1>();
-
-        // enc = level_struct(0, 1);
-        // quest = level_struct(0, 1);
-        // quest_queue = bn::deque<quest_struct, 16>();
-        // message_queue = bn::deque<progress_struct, 8>();
-        // progress = level_struct(0, 1);
     }
 
     void roll()

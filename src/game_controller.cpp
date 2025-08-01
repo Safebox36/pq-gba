@@ -220,6 +220,7 @@ void game_controller::drawTab1(player_struct& player, data_strings& data_strings
 
     player_data.clear();
     player_data_labels.clear();
+    player_progress.clear();
     player_data_default_positions.clear();
 
     text_generator->set_left_alignment();
@@ -247,6 +248,7 @@ void game_controller::drawTab1(player_struct& player, data_strings& data_strings
     }
 
     text_generator->generate_top_left(7, 109, "Experience", player_data_labels);
+    text_generator->generate_top_left(4, 138, player.kill, player_progress);
 
     updateScrollbar(player);
 }
@@ -512,21 +514,61 @@ unsigned short game_controller::levelUpTime(unsigned short level)
 
 void game_controller::task(bn::string<128> message, unsigned short duration, player_struct& player)
 {
-    player.message_queue.push_front(progress_struct(progress_struct::task, duration, message));
+    int charCount = 0;
+    int length = 0;
+    // BN_LOG("task, begin loop");
+    for (auto c : message)
+    {
+        bool done = false;
+        // BN_LOG("task, char: ", c);
+        for (int i = 0; i < (sizeof(font_regular_chars) / sizeof(font_regular_chars[0])); i++)
+        {
+            if (c == font_regular_chars[i])
+            {
+                // BN_LOG("task, utf8: ", i);
+                // BN_LOG("task, width: ", font_regular_widths[i]);
+                if (length + font_regular_widths[i] > 232)
+                {
+                    done = true;
+                }
+                else
+                {
+                    charCount++;
+                    length += font_regular_widths[i];
+                }
+                break;
+            }
+        }
+        if (done)
+        {
+            break;
+        }
+    }
+    BN_LOG("task, message: ", message);
+    BN_LOG("task, charCount: ", charCount);
+    // BN_LOG("task, old kill: (", player.kill, ")");
+    BN_LOG("task, msg: ", (charCount < message.length() ? message.substr(0, charCount-3) : message).append("..."));
+    // player.kill = (charCount < message.length() ? message.substr(0, charCount-3) : message).append("...");
+    // BN_LOG("task, new kill: (", player.kill, ")");
     player.task_prog.value = 0;
     player.task_prog.max = duration;
 }
 
 void game_controller::q(progress_struct data, player_struct& player, data_strings& data_strings)
 {
+    // BN_LOG("data: ", data.message);
     player.message_queue.push_back(data);
+    // BN_LOG("crash starts in q");
     dequeueQ(player, data_strings);
 }
 
 void game_controller::dequeueQ(player_struct& player, data_strings& data_strings)
 {
+    BN_LOG("dequeueQ, player.task_prog.value: ", player.task_prog.value, " player.task_prog.max: ", player.task_prog.max);
     while (player.task_prog.value >= player.task_prog.max)
     {
+        BN_LOG("dequeueQ, begin loop");
+        BN_LOG("dequeueQ, player.task_data.caption: ", player.task_data.caption);
         if (split(player.task_data.caption, 0) == "kill")
         {
             if (split(player.task_data.caption, 3) == "*")
@@ -558,7 +600,7 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
             if (player.inventory.size() > 1)
             {
                 auto item = player.inventory[player.inventory.size() - 1];
-                task(bn::string<128>("Selling ").append(indefinite(item.typeId == item_struct::boring ? data_strings.items_boring[item.id] : data_strings.items_monster[item.id], player.inventory[player.inventory.size() - 1].count)), 1 * 1000, player);
+                task(bn::string<128>("Selling ").append(indefinite(item.typeId == item_struct::boring ? data_strings.items_boring[item.id] : data_strings.items_monster[item.id], player.inventory[player.inventory.size() - 1].count)), 1 * 60, player);
                 player.task_data.caption = "sell";
                 break;
             }
@@ -575,9 +617,9 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
                 if (a == progress_struct::plot)
                 {
                     completeAct(player, data_strings);
-                    s = "Loading " + player.message_queue.front().message;
+                    s = "Loading " + player.plot_queue.back().desc;
                 }
-                task(s, n * 1000, player);
+                task(s, n * 60, player);
                 player.message_queue.pop_front();
             }
             else
@@ -587,19 +629,19 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
         }
         else if (player.enc.value >= player.enc.max)
         {
-            task("Heading to market to sell loot", 4 * 1000, player);
+            task("Heading to market to sell loot", 4 * 60, player);
             player.task_data.caption = "market";
         }
         else if (old.find("kill|") <= 0 && (old.c_str() != "heading"))
         {
             if (player.inventory[0].count >= equipPrice(player))
             {
-                task("Negotiating purchase of better equipment", 5 * 1000, player);
+                task("Negotiating purchase of better equipment", 5 * 60, player);
                 player.task_data.caption = "buying";
             }
             else
             {
-                task("Heading to the killing fields", 4 * 1000, player);
+                task("Heading to the killing fields", 4 * 60, player);
                 player.task_data.caption = "heading";
             }
         }
@@ -608,16 +650,17 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
             auto n = player.level;
             auto l = n;
             auto s = monsterTask(n, player, data_strings);
-            task("Executing " + s, (6 * n * 1000) / l, player);
+            task("Executing " + s, (6 * n * 60) / l, player);
         }
     }
+    BN_LOG("dequeueQ, end loop");
 }
 
 void game_controller::completeAct(player_struct& player, data_strings& data_strings)
 {
-    player.plot.value = 0;
-    player.plot_queue.end()->complete = true;
-    player.plot.max = 60 * 60 * (1 + 5 * player.plot_queue.size()); // 1 hr + 5/act
+    player.plot_prog.value = 0;
+    player.plot_queue.back().complete = true;
+    player.plot_prog.max = 60 * 60 * (1 + 5 * player.plot_queue.size()); // 1 hr + 5/act
     player.plot_queue.push_back(quest_struct(bn::string<128>("Act ").append(bn::to_string<128>(player.plot_queue.size() - 1))));
     if (player.plot_queue.size() > 2) winItem(player, data_strings);
     if (player.plot_queue.size() > 3) winEquip(player, data_strings);
@@ -648,7 +691,7 @@ void game_controller::completeQuest(player_struct& player, data_strings& data_st
                 break;
         }
     }
-    while (player.quest_queue.size() > 99)
+    while (player.quest_queue.size() == player.quest_queue.max_size())
     {
         player.quest_queue.pop_front();
     }
@@ -671,13 +714,14 @@ void game_controller::completeQuest(player_struct& player, data_strings& data_st
                     player.quest_data.tag = montag;
                 }
             }
-            player.quest_data.caption = "Exterminate " + definite(split(m, 0), 2);
+            player.quest_data.caption = "Exterminate " + definite(split(player.quest_data.caption, 0), 2);
             break;
         }
         case 1:
         {
             auto item = interestingItem(player, data_strings);
-            player.quest_data.caption = "Seek " + definite(data_strings.items_monster[item.id], 1);
+            bn::string<128> s = data_strings.item_specials[item.id];
+            player.quest_data.caption = bn::string<128>("Seek ").append(data_strings.item_modifiers[item.modifierId]).append(" ").append(definite(split(s, 1), 1));
             break;
         }
         case 2:
@@ -706,7 +750,7 @@ void game_controller::completeQuest(player_struct& player, data_strings& data_st
                     lev = l;
                 }
             }
-            player.quest_data.caption = "Placate " + definite(split(m, 0), 2);
+            player.quest_data.caption = "Placate " + definite(split(player.quest_data.caption, 0), 2);
             break;
         }
     }
@@ -751,13 +795,13 @@ bn::string<128> game_controller::monsterTask(unsigned short& monster_level, play
         lev = monster_level;
         monster.reward = item_struct(0, item_struct::gold);
     }
-    else if (player.task_data.caption == "" && player.rng.get_unbiased_int(4) < 1)
+    else if (player.quest_data.caption == "" && player.rng.get_unbiased_int(4) < 1)
     {
         // Original documentation:
         // use the quest monster
         monster.caption = data_strings.items_monster[player.quest_data.tag];
         lev = data_strings.items_monster_val[monster.tag];
-        monster.reward = item_struct(player.quest_data.tag, item_struct::monster, 0, 0, 0, lev, monster.reward->count);
+        monster.reward = item_struct(player.quest_data.tag, item_struct::monster, 0, 0, lev, monster.reward->count);
     }
     else
     {
@@ -780,7 +824,7 @@ bn::string<128> game_controller::monsterTask(unsigned short& monster_level, play
                 i--;
             }
         }
-        monster.reward = item_struct(player.quest_data.tag, item_struct::monster, 0, 0, 0, lev, monster.reward->count);
+        monster.reward = item_struct(player.quest_data.tag, item_struct::monster, 0, 0, lev, monster.reward->count);
     }
 
     player.task_data = monster;
@@ -1099,7 +1143,7 @@ item_struct game_controller::specialItem(player_struct& player, data_strings& da
 
 item_struct game_controller::interestingItem(player_struct& player, data_strings& data_strings)
 {
-    return item_struct(player.rng.get_unbiased_int(data_strings.items_monster.size()), item_struct::monster);
+    return item_struct(player.rng.get_unbiased_int(data_strings.item_specials.size()), item_struct::interesting, player.rng.get_unbiased_int(data_strings.item_modifiers.size()));
 }
 
 item_struct game_controller::boringItem(player_struct& player, data_strings& data_strings)
@@ -1338,6 +1382,10 @@ bn::string<128> game_controller::impressiveGuy(player_struct &player, data_strin
 void game_controller::start(player_struct& player, data_strings& data_strings)
 {
     player.exp.value = levelUpTime(1);
+    player.task_data.caption = "load";
+    player.quest_data.caption = "";
+    player.message_queue.clear();
+
     task("Loading", 2000, player);
     q(progress_struct(progress_struct::task, 10, "Experiencing an enigmatic and foreboding night vision"), player, data_strings);
     q(progress_struct(progress_struct::task, 6, "Much is revealed about that wise old bastard you'd underestimated"), player, data_strings);
@@ -1345,7 +1393,7 @@ void game_controller::start(player_struct& player, data_strings& data_strings)
     q(progress_struct(progress_struct::task, 4, "Drawing upon an unexpected reserve of determination, you set out on a long and dangerous journey"), player, data_strings);
     q(progress_struct(progress_struct::plot, 2, "Loading"), player, data_strings);
 
-    player.plot.max = 26;
+    player.plot_prog.max = 26;
     player.plot_queue.push_back(quest_struct("Prologue"));
 }
 
@@ -1364,7 +1412,7 @@ void game_controller::tick(player_struct &player, data_strings &data_strings)
             }
             else
             {
-                player.exp.value = bn::fixed(player.task_prog.value / 1000.f).round_integer();
+                player.exp.value = bn::fixed(player.task_prog.value / 60.f).round_integer();
             }
         }
 
@@ -1378,28 +1426,29 @@ void game_controller::tick(player_struct &player, data_strings &data_strings)
             }
             else if (player.quest_queue.size() > 1)
             {
-                player.task_prog.value += bn::fixed(player.task_prog.max / 1000.f).round_integer();
+                player.task_prog.value += bn::fixed(player.task_prog.max / 60.f).round_integer();
             }
         }
 
         // Original documentation:
-        // advance plot
-        if (gain && player.plot.value >= player.plot.max)
+        // advance plot_prog
+        if (gain && player.plot_prog.value >= player.plot_prog.max)
         {
             interplotCinematic(player, data_strings);
         }
         else if (player.task_data.caption.c_str() != "load")
         {
-            player.plot.value = bn::min<unsigned short>(player.plot.value + bn::fixed(player.task_prog.max / 1000.f).round_integer(), player.plot.max);
+            player.plot_prog.value = bn::min<unsigned short>(player.plot_prog.value + bn::fixed(player.task_prog.max / 60.f).round_integer(), player.plot_prog.max);
         }
 
+        BN_LOG("crash starts in tick");
         dequeueQ(player, data_strings);
     }
-
-    player.elapsed += 1 + bn::core::last_missed_frames();
-    if (player.elapsed > 10) player.elapsed = 10;
-    if (player.elapsed < 0) player.elapsed = 0;
-    player.task_prog.value += player.elapsed;
+    else
+    {
+        BN_LOG("player.task_prog.value: ", player.task_prog.value);
+        player.task_prog.value += 1 + bn::core::last_missed_frames();
+    }
 }
 
 void game_controller::saveGame(player_struct& player)
