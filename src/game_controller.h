@@ -32,7 +32,7 @@ class game_controller
         bn::vector<bn::sprite_ptr, 4> scrollbars;
         bn::optional<bn::sprite_ptr> scroll_thumb;
         bn::vector<int, 2> scroll_values;
-        bn::vector<bn::vector<bn::sprite_ptr, 32>, 2> player_data;
+        bn::vector<bn::vector<bn::sprite_ptr, 16>, 2> player_data;
         bn::vector<bn::sprite_ptr, 32> player_data_labels;
         bn::vector<bn::sprite_ptr, 16> player_progress;
         bn::vector<bn::point, 2> player_data_default_positions;

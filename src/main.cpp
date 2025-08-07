@@ -1,4 +1,5 @@
 #include "bn_core.h"
+#include "bn_unique_ptr.h"
 
 #include "player_struct.h"
 #include "data_strings.h"
@@ -11,7 +12,7 @@ int main()
     bn::core::init();
     int activeScreen = 0;
     int nextScreen = 0;
-    player_struct player = player_struct();
+    bn::unique_ptr<player_struct> player = bn::make_unique<player_struct>();
     data_strings data_str = data_strings();
     menu_controller menu;
     create_controller create;
@@ -26,10 +27,10 @@ int main()
                 menu.update(nextScreen);
                 break;
             case 1:
-                create.update(nextScreen, player, data_str);
+                create.update(nextScreen, *player.get(), data_str);
                 break;
             case 2:
-                game.update(player, data_str);
+                game.update(*player.get(), data_str);
                 break;
         }
         if (activeScreen != nextScreen)
@@ -41,11 +42,11 @@ int main()
                     activeScreen = 0;
                     break;
                 case 1:
-                    create.enter(player, data_str);
+                    create.enter(*player.get(), data_str);
                     activeScreen = 1;
                     break;
                 case 2:
-                    game.enter(player, data_str);
+                    game.enter(*player.get(), data_str);
                     activeScreen = 2;
                     break;
             }

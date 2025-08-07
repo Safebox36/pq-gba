@@ -37,6 +37,7 @@ struct player_struct
     bn::string<64> kill = bn::string<64>();
 
     bn::random rng = bn::random();
+    unsigned char elapsed = 0;
 
     player_struct()
     {
@@ -44,6 +45,8 @@ struct player_struct
         {
             stats.push_back(0);
         }
+
+        inventory.push_back(item_struct(0, item_struct::gold, 0, 0, 0, 0));
     }
 
     void roll()

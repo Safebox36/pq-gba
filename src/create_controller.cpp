@@ -480,6 +480,10 @@ void create_controller::update(int& nextScreen, player_struct& player, data_stri
     else if (bn::keypad::start_pressed())
     {
         nextScreen = 2;
+        for (int i = 0; i < data_strings.equipment_titles.size(); i++)
+        {
+            player.equipment.push_back(equipment_struct(0, equipment_struct::dummy));
+        }
         exit();
     }
     else if (bn::keypad::right_pressed())
