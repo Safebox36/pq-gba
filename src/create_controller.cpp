@@ -365,7 +365,7 @@ void create_controller::drawTab4(player_struct& player, data_strings& data_strin
     {
         for (auto c : titles[i])
         {
-            c.set_top_left_y(i == 1 ? 0 : 2);
+            c.set_top_left_y(i == 3 ? 0 : 2);
         }
     }
 
