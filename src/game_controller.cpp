@@ -11,6 +11,7 @@
 #include "bn_regular_bg_items_scr_inv.h"
 #include "bn_regular_bg_items_scr_main.h"
 #include "bn_sprite_items_spr_scroll.h"
+#include "bn_sprite_items_spr_progress.h"
 #include "bn_sprite_ptr.h"
 #include "bn_sprite_text_generator.h"
 #include "bn_string.h"
@@ -20,7 +21,7 @@
 
 int game_controller::lerp(bn::fixed v0, bn::fixed v1, bn::fixed t)
 {
-    return (v0 + t * (v1 - v0)).round_integer();
+    return (v0 + t.safe_multiplication(v1 - v0)).round_integer();
 }
 
 bool game_controller::incrementActiveTab()
@@ -58,17 +59,26 @@ bool game_controller::incrementHighlightedScrollbar(player_struct& player)
         case 1:
             if (highlightedScrollbar == 0)
             {
-                if (spell_list.size() == 0 || scroll_values[highlightedScrollbar] == spell_list.size() - 5)
+                BN_LOG("spell_list.size(): ", spell_list.size());
+                if (spell_list.size() == 0 || scroll_values[highlightedScrollbar] >= spell_list.size() - 5)
                 {
                     return false;
                 }
             }
             else if (highlightedScrollbar == 1)
             {
-                if (equip_list.size() == 0 || scroll_values[highlightedScrollbar] == equip_list.size() - 6)
+                BN_LOG("equip_list.size(): ", equip_list.size());
+                if (equip_list.size() == 0 || scroll_values[highlightedScrollbar] >= equip_list.size() - 6)
                 {
                     return false;
                 }
+            }
+            break;
+        case 2:
+            BN_LOG("player.inventory.size(): ", player.inventory.size());
+            if (scroll_values[highlightedScrollbar] >= player.inventory.size() - 4)
+            {
+                return false;
             }
             break;
     }
@@ -92,20 +102,24 @@ void game_controller::updateScrollbar(player_struct& player)
     switch (activeTab)
     {
         case 0:
-            scrollPos = bn::point(216, lerp(scrollbars[0].top_left_position().y() + 16, scrollbars[1].top_left_y() - 16, bn::max<float>(0, static_cast<float>(scroll_values[highlightedScrollbar]) / (player.stats.size() - 4))));
+            // BN_LOG("updateScrollbar, player.stats.size() - 4: ", player.stats.size() - 4);
+            scrollPos = bn::point(216, lerp(scrollbars[0].top_left_position().y() + 16, scrollbars[1].top_left_y() - 16, bn::max<bn::fixed>(0, bn::fixed(scroll_values[highlightedScrollbar]).safe_division(player.stats.size() - 4))));
             break;
         case 1:
             if (highlightedScrollbar == 0)
             {
-                scrollPos = bn::point(100, lerp(scrollbars[0].top_left_position().y() + 16, scrollbars[1].top_left_y() - 16, bn::max<float>(0, static_cast<float>(scroll_values[highlightedScrollbar]) / (spell_list.size() - 5))));
+                // BN_LOG("updateScrollbar, spell_list.size() - 5: ", spell_list.size() - 5);
+                scrollPos = bn::point(100, lerp(scrollbars[0].top_left_position().y() + 16, scrollbars[1].top_left_y() - 16, (spell_list.size() - 5 > 0) ? bn::fixed(scroll_values[highlightedScrollbar]).safe_division(spell_list.size() - 5) : 0));
             }
             else if (highlightedScrollbar == 1)
             {
-                scrollPos = bn::point(216, lerp(scrollbars[2].top_left_position().y() + 16, scrollbars[3].top_left_y() - 16, bn::max<float>(0, static_cast<float>(scroll_values[highlightedScrollbar]) / (equip_list.size() - 6))));
+                // BN_LOG("updateScrollbar, equip_list.size() - 6: ", equip_list.size() - 6);
+                scrollPos = bn::point(216, lerp(scrollbars[2].top_left_position().y() + 16, scrollbars[3].top_left_y() - 16, bn::max<bn::fixed>(0, bn::fixed(scroll_values[highlightedScrollbar]).safe_division(equip_list.size() - 6))));
             }
             break;
         case 2:
-            scrollPos = bn::point(216, lerp(scrollbars[0].top_left_position().y() + 16, scrollbars[1].top_left_y() - 16, bn::max<float>(0, static_cast<float>(scroll_values[highlightedScrollbar]) / (player.inventory.size() - 6))));
+            // BN_LOG("updateScrollbar, player.inventory.size() - 4: ", player.inventory.size() - 4);
+            scrollPos = bn::point(216, lerp(scrollbars[0].top_left_position().y() + 16, scrollbars[1].top_left_y() - 16, (player.inventory.size() - 4 > 0) ? bn::fixed(scroll_values[highlightedScrollbar]).safe_division(player.inventory.size() - 4) : 0));
             break;
     }
     scroll_thumb->set_top_left_position(scrollPos);
@@ -113,6 +127,7 @@ void game_controller::updateScrollbar(player_struct& player)
 
 void game_controller::updateLists(player_struct& player, data_strings& data_strings)
 {
+    // BN_LOG("updateLists");
     spell_list.clear();
     spell_levels.clear();
     equip_list.clear();
@@ -135,39 +150,146 @@ void game_controller::updateLists(player_struct& player, data_strings& data_stri
         }
     }
 
+    // BN_LOG("updateLists, player.equipment.size(): ", player.equipment.size());
     for (int i = 0; i < data_strings.equipment_titles.size(); i++)
     {
+        // BN_LOG("updateLists, i: ", i);
         equip_list.push_back(data_strings.equipment_titles[i]);
         if (player.equipment.size() > i)
         {
-            // bn::string<32> data_level = bn::string<32>("- ").append(spell_levels[i] > -1 ? "+" : "").append(spell_levels[i]);
-            bn::string<32> data_modifier = bn::string<32>("- ").append(data_strings.equipment_def_bad[player.equipment[i].modifierId]);
-            bn::string_view data_value;
-            switch (player.equipment[i].typeId)
+            // BN_LOG("updateLists, player.equipment.size() > i");
+            short lvl = player.equipment[i].plusMinus;
+            bn::string<32> data = bn::string<32>("- ");
+            bn::string<32> data_level = bn::string<32>("- ");
+            bn::string<32> data_modifier1 = bn::string<32>("- ");
+            bn::string<32> data_modifier2 = bn::string<32>("- ");
+            // BN_LOG("updateLists, player.equipment[i].baseEquipTypeId: ", player.equipment[i].baseEquipTypeId);
+            switch (player.equipment[i].baseEquipTypeId)
             {
                 case equipment_struct::weapon:
-                    data_value = data_strings.equipment_weapon[player.equipment[i].equipId];
+                    data.append(data_strings.equipment_weapon[player.equipment[i].equipId]);
+                    if (lvl != 0)
+                    {
+                        data_level.append(lvl > 0 ? "+" : "").append(bn::to_string<32>(lvl));
+                    }
                     break;
                 case equipment_struct::shield:
-                    data_value = data_strings.equipment_shield[player.equipment[i].equipId];
-                    break;
                 case equipment_struct::armour:
-                    data_value = data_strings.equipment_armour[player.equipment[i].equipId];
+                    if (player.equipment[i].baseEquipTypeId == equipment_struct::shield)
+                    {
+                        data.append(data_strings.equipment_shield[player.equipment[i].equipId]);
+                    }
+                    else
+                    {
+                        data.append(data_strings.equipment_armour[player.equipment[i].equipId]);
+                    }
+                    if (lvl != 0)
+                    {
+                        data_level.append(lvl > 0 ? "+" : "").append(bn::to_string<32>(lvl));
+                    }
                     break;
                 case equipment_struct::dummy:
-                    data_modifier = "";
-                    data_value = i == 0 ? "Sharp Stick" : "(none)";
+                    data.append(i == 0 ? "Sharp Stick" : "(none)");
+                    data_modifier1 = "";
                     break;
             }
-            bn::string<32> data = bn::string<32>("- ").append(data_value);
-            // equip_list.push_back(data_level);
-            if (data_modifier.length() > 0)
+            if (data_modifier1.length() > 0)
             {
-                equip_list.push_back(data_modifier);
+                switch (player.equipment[i].modifierEquipTypeId)
+                {
+                    case equipment_struct::weapon:
+                        if (player.equipment[i].modifierTypeId1 == equipment_struct::bad)
+                        {
+                            data_modifier1.append(data_strings.equipment_off_bad[player.equipment[i].modifierId1]);
+                            data_modifier2.append(data_strings.equipment_off_bad[player.equipment[i].modifierId2]);
+                        }
+                        else
+                        {
+                            data_modifier1.append(data_strings.equipment_off[player.equipment[i].modifierId1]);
+                            data_modifier2.append(data_strings.equipment_off[player.equipment[i].modifierId2]);
+                        }
+                        break;
+                    case equipment_struct::shield:
+                    case equipment_struct::armour:
+                        if (player.equipment[i].modifierTypeId1 == equipment_struct::bad)
+                        {
+                            data_modifier1.append(data_strings.equipment_def_bad[player.equipment[i].modifierId1]);
+                            data_modifier2.append(data_strings.equipment_def_bad[player.equipment[i].modifierId2]);
+                        }
+                        else
+                        {
+                            data_modifier1.append(data_strings.equipment_def[player.equipment[i].modifierId1]);
+                            data_modifier2.append(data_strings.equipment_def[player.equipment[i].modifierId2]);
+                        }
+                        break;
+                    case equipment_struct::dummy:
+                        break;
+                }
+                if (lvl != 0)
+                {
+                    equip_list.push_back(data_level);
+                }
+                equip_list.push_back(data_modifier1);
+                equip_list.push_back(data_modifier2);
             }
             equip_list.push_back(data);
         }
     }
+
+    auto invCount = 0;
+    // BN_LOG("updateLists, player.inventory.size(): ", player.inventory.size());
+    for (auto i : player.inventory)
+    {
+        if (i.typeId == item_struct::gold) continue;
+        invCount += i.count;
+    }
+    player.enc.value = invCount;
+}
+
+bn::string<64> game_controller::clipKill(player_struct& player)
+{
+    int charCount = 0;
+    int length = 0;
+    for (auto c : player.kill.substr(player.ticker_offset))
+    {
+        bool done = false;
+        for (int i = 0; i < (sizeof(font_regular_chars) / sizeof(font_regular_chars[0])); i++)
+        {
+            if (c == font_regular_chars[i])
+            {
+                if (length + font_regular_widths[i] > 232)
+                {
+                    done = true;
+                }
+                else
+                {
+                    charCount++;
+                    length += font_regular_widths[i];
+                }
+                break;
+            }
+        }
+        if (done)
+        {
+            if (c == ' ')
+            {
+                charCount--;
+            }
+            break;
+        }
+    }
+    bn::string<64> outMessage = ((player.ticker_offset + charCount) < player.kill.length() ? player.kill.substr(player.ticker_offset, player.ticker_offset + charCount - 3) : player.kill);
+    if (outMessage.back() == ' ') outMessage.pop_back();
+    outMessage.append("...");
+    // if ((player.ticker_offset + charCount) < player.kill.length() + 3)
+    // {
+    //     player.ticker_offset++;
+    // }
+    // else
+    // {
+    //     player.ticker_offset = 0;
+    // }
+    return outMessage;
 }
 
 bool game_controller::rome(unsigned int& n, unsigned int dn, bn::string<7>& s, bn::string<7> ds)
@@ -206,6 +328,48 @@ bn::string<7> game_controller::intToRome(unsigned int n)
     return result;
 }
 
+bn::string<32> game_controller::buildItemName(const item_struct& item, data_strings& data_strings)
+{
+    bn::string<32> item_name;
+    switch (item.typeId)
+    {
+        case item_struct::gold:
+        {
+            item_name = bn::string<32>("Gold");
+            break;
+        }
+        case item_struct::monster:
+        {
+            bn::string<128> monster = data_strings.items_monster[item.id];
+            item_name = split(monster, 0).append(" ").append(split(monster, 1));
+            item_name = toLower(item_name).substr(0, 32 - 3);
+            break;
+        }
+        case item_struct::boring:
+        {
+            bn::string<128> boring = data_strings.items_boring[item.id];
+            item_name = boring;
+            item_name = toLower(item_name).substr(0, 32 - 3);
+            break;
+        }
+        case item_struct::interesting:
+        {
+            bn::string<128> interesting = bn::string<128>(data_strings.item_modifiers[item.modifierId]).append(" ").append(data_strings.item_specials[item.id]).append(" of ").append(data_strings.item_of[item.ofId]);
+            item_name = split(interesting, 1).substr(0, 32 - 3);
+            break;
+        }
+        case item_struct::special:
+        {
+            bn::string<128> special = data_strings.item_specials[item.id];
+            item_name = bn::string<128>(data_strings.item_modifiers[item.modifierId]).append(" ").append(split(special, 0)).append(" ").append(split(special, 1));
+            item_name = toLower(item_name).substr(0, 32 - 3);
+            break;
+        }
+    }
+    return item_name;
+}
+
+
 void game_controller::drawTab1(player_struct& player, data_strings& data_strings)
 {
     // BN_LOG("drawTab1, active_background");
@@ -224,7 +388,7 @@ void game_controller::drawTab1(player_struct& player, data_strings& data_strings
     scrollbars.push_back(scroll->create_sprite(1));
     scrollbars.push_back(scroll->create_sprite(2));
     scrollbars[0].set_top_left_position(216, 48);
-    scrollbars[1].set_top_left_position(216, 90);
+    scrollbars[1].set_top_left_position(216, 92);
 
     // BN_LOG("drawTab1, scroll_thumbs");
     scroll_thumb->set_top_left_position(216, 64);
@@ -238,6 +402,9 @@ void game_controller::drawTab1(player_struct& player, data_strings& data_strings
     player_progress.clear();
     // BN_LOG("drawTab1, player_progress_labels");
     player_data_default_positions.clear();
+    task_prog_bar.clear();
+    sub_prog_bar_a.clear();
+    sub_prog_bar_b.clear();
 
     // BN_LOG("drawTab1, player_data_labels");
     text_generator->set_left_alignment();
@@ -268,8 +435,21 @@ void game_controller::drawTab1(player_struct& player, data_strings& data_strings
     }
 
     // BN_LOG("drawTab1, player_data_labels 3");
-    text_generator->generate_top_left(7, 109, "Experience", player_data_labels);
-    text_generator->generate_top_left(4, 138, player.kill, player_progress);
+    text_generator->generate_top_left(7, 111, "Experience", player_data_labels);
+    text_generator->generate_top_left(4, 138, clipKill(player), player_progress);
+
+    auto maxProg = player.task_prog.numberOfSprites(234, 30);
+    for (int i = 0; i < maxProg; i++)
+    {
+        task_prog_bar.push_back(bn::sprite_items::spr_progress.create_sprite(maxProg - i - 1 == 0 ? player.task_prog.spriteIndex(234) : 0));
+        task_prog_bar.back().set_top_left_position(3 + (i * 8), 155);
+    }
+    auto maxExp = player.exp.numberOfSprites(226, 29);
+    for (int i = 0; i < maxExp; i++)
+    {
+        sub_prog_bar_a.push_back(bn::sprite_items::spr_progress.create_sprite(maxExp - i - 1 == 0 ? player.exp.spriteIndex(226) : 0));
+        sub_prog_bar_a.back().set_top_left_position(7 + (i * 8), 127);
+    }
 
     // BN_LOG("drawTab1, updateScrollbar");
     updateScrollbar(player);
@@ -309,8 +489,12 @@ void game_controller::drawTab2(player_struct& player, data_strings& data_strings
     // BN_LOG("drawTab2, player_data, size: ", player_data.size());
     // BN_LOG("drawTab2, player_data_labels");
     player_data_labels.clear();
+    player_progress.clear();
     // BN_LOG("drawTab2, player_data_default_positions");
     player_data_default_positions.clear();
+    task_prog_bar.clear();
+    sub_prog_bar_a.clear();
+    sub_prog_bar_b.clear();
 
     // BN_LOG("drawTab2, text_generator");
     text_generator->set_left_alignment();
@@ -321,7 +505,7 @@ void game_controller::drawTab2(player_struct& player, data_strings& data_strings
     // BN_LOG("drawTab2, player_data, size: ", player_data.size());
     player_data.push_back(bn::vector<bn::sprite_ptr, 16>());
     // BN_LOG("drawTab2, player_data, size: ", player_data.size());
-    player_data_default_positions.push_back(bn::point(9, 48));
+    player_data_default_positions.push_back(bn::point(9, 47));
     for (int i = scroll_values[0]; i < scroll_values[0] + 5; i++)
     {
         if (spell_list.size() > i)
@@ -345,6 +529,15 @@ void game_controller::drawTab2(player_struct& player, data_strings& data_strings
         }
     }
 
+    text_generator->generate_top_left(4, 138, clipKill(player), player_progress);
+
+    auto maxProg = player.task_prog.numberOfSprites(234, 30);
+    for (int i = 0; i < maxProg; i++)
+    {
+        task_prog_bar.push_back(bn::sprite_items::spr_progress.create_sprite(maxProg - i - 1 == 0 ? player.task_prog.spriteIndex(234) : 0));
+        task_prog_bar.back().set_top_left_position(3 + (i * 8), 155);
+    }
+
     // BN_LOG("drawTab2, updateScrollbar");
     updateScrollbar(player);
 }
@@ -364,44 +557,52 @@ void game_controller::drawTab3(player_struct& player, data_strings& data_strings
     scrollbars.push_back(scroll->create_sprite(1));
     scrollbars.push_back(scroll->create_sprite(2));
     scrollbars[0].set_top_left_position(216, 48);
-    scrollbars[1].set_top_left_position(216, 90);
+    scrollbars[1].set_top_left_position(216, 92);
 
     scroll_thumb->set_top_left_position(216, 64);
     scroll_thumb->set_visible(true);
 
     player_data.clear();
     player_data_labels.clear();
+    player_progress.clear();
     player_data_default_positions.clear();
+    task_prog_bar.clear();
+    sub_prog_bar_a.clear();
+    sub_prog_bar_b.clear();
 
-    // text_generator->set_left_alignment();
-    // text_generator->generate_top_left(10, 33, "Spell", player_data_labels);
-    // text_generator->generate_top_left(80, 33, "Value", player_data_labels);
-    //
-    // player_data.push_back(bn::vector<bn::sprite_ptr, 32>());
-    // player_data_default_positions.push_back(bn::point(9, 48));
-    // for (int i = scroll_values[0]; i < scroll_values[0] + 5; i++)
-    // {
-    //     if (spell_list.size() > i)
-    //     {
-    //         text_generator->generate_top_left(player_data_default_positions[0] + bn::point(0, (i - scroll_values[0]) * 16), spell_list[i], player_data[0]);
-    //         if (spell_levels[i] > 0)
-    //         {
-    //             text_generator->generate_top_left(player_data_default_positions[0] + bn::point(70, (i - scroll_values[0]) * 16), bn::to_string<5>(spell_levels[i]), player_data[0]);
-    //         }
-    //     }
-    // }
-    //
-    // player_data.push_back(bn::vector<bn::sprite_ptr, 32>());
-    // player_data_default_positions.push_back(bn::point(125, 32));
-    // for (int i = scroll_values[1]; i < scroll_values[1] + 6; i++)
-    // {
-    //     if (equip_list.size() > i)
-    //     {
-    //         text_generator->generate_top_left(player_data_default_positions[1] + bn::point(0, (i - scroll_values[1]) * 16), equip_list[i], player_data[1]);
-    //     }
-    // }
+    text_generator->set_left_alignment();
+    text_generator->generate_top_left(10, 33, "Item", player_data_labels);
+    text_generator->generate_top_left(196, 33, "Qty", player_data_labels);
 
-    text_generator->generate_top_left(7, 109, "Encumbrance", player_data_labels);
+    player_data.push_back(bn::vector<bn::sprite_ptr, 32>());
+    player_data.push_back(bn::vector<bn::sprite_ptr, 32>());
+    player_data_default_positions.push_back(bn::point(9, 47));
+    player_data_default_positions.push_back(bn::point(195, 47));
+    for (int i = scroll_values[highlightedScrollbar]; i < scroll_values[highlightedScrollbar] + 4; i++)
+    {
+        if (player.inventory.size() > i)
+        {
+            bn::string<32> item = buildItemName(player.inventory[i], data_strings);
+            text_generator->generate_top_left(player_data_default_positions[0] + bn::point(0, (i - scroll_values[highlightedScrollbar]) * 16), item.length() == 32 - 3 ? item.append("...") : item, player_data[0]);
+            text_generator->generate_top_left(player_data_default_positions[1] + bn::point(0, (i - scroll_values[highlightedScrollbar]) * 16), bn::to_string<3>(player.inventory[i].count), player_data[1]);
+        }
+    }
+
+    text_generator->generate_top_left(7, 111, "Encumbrance", player_data_labels);
+    text_generator->generate_top_left(4, 138, clipKill(player), player_progress);
+
+    auto maxProg = player.task_prog.numberOfSprites(234, 30);
+    for (int i = 0; i < maxProg; i++)
+    {
+        task_prog_bar.push_back(bn::sprite_items::spr_progress.create_sprite(maxProg - i - 1 == 0 ? player.task_prog.spriteIndex(234) : 0));
+        task_prog_bar.back().set_top_left_position(3 + (i * 8), 155);
+    }
+    auto maxEnc = player.enc.numberOfSprites(226, 29);
+    for (int i = 0; i < maxEnc; i++)
+    {
+        sub_prog_bar_a.push_back(bn::sprite_items::spr_progress.create_sprite(maxEnc - i - 1 == 0 ? player.enc.spriteIndex(226) : 0));
+        sub_prog_bar_a.back().set_top_left_position(7 + (i * 8), 127);
+    }
 
     updateScrollbar(player);
 }
@@ -435,7 +636,7 @@ void game_controller::enter(player_struct& player, data_strings& data_strings)
     scroll = bn::sprite_items::spr_scroll;
     scroll_thumb = scroll->create_sprite(0);
     scroll_values = bn::vector<int, 2>();
-    scroll_values.push_back(0); // ignored
+    scroll_values.push_back(0); // ignored for the first tab
     scroll_values.push_back(0);
 
     text_generator = bn::sprite_text_generator(font_regular);
@@ -452,30 +653,45 @@ void game_controller::enter(player_struct& player, data_strings& data_strings)
     spell_list = bn::vector<bn::string<32>, 61>();
     spell_levels = bn::vector<short, 11>();
     equip_list = bn::vector<bn::string<32>, 33>();
+    task_prog_bar = bn::vector<bn::sprite_ptr, 30>();
+    sub_prog_bar_a = bn::vector<bn::sprite_ptr, 29>();
 
     drawTab1(player, data_strings);
 }
 
 void game_controller::update(player_struct& player, data_strings& data_strings)
 {
-    if (player.elapsed >= 10)
-    {
+    // if (player.elapsed >= 1)
+    // {
         tick(player, data_strings);
-    }
-    else
-    {
-        player.elapsed += 1 + bn::core::last_missed_frames();
-    }
+    // BN_LOG("\nexp: ", player.exp.value, " / ", player.exp.max, "\ntask: ", player.task_prog.value, " / ", player.task_prog.max, "\nquest: ", player.quest_prog.value, " / ", player.quest_prog.max, "\nplot: ", player.plot_prog.value, " / ", player.plot_prog.max);
+    // }
+    // else
+    // {
+    //     player.elapsed += 1 + bn::core::last_missed_frames();
+    // }
 
-    if (bn::keypad::right_released())
+    if (bn::keypad::right_pressed())
     {
-        highlightedScrollbar = 1;
-        updateScrollbar(player);
+        switch (activeTab)
+        {
+            case 1:
+            case 3:
+                highlightedScrollbar = 1;
+                updateScrollbar(player);
+                break;
+        }
     }
-    else if (bn::keypad::left_released())
+    else if (bn::keypad::left_pressed())
     {
-        highlightedScrollbar = 0;
-        updateScrollbar(player);
+        switch (activeTab)
+        {
+            case 1:
+            case 3:
+                highlightedScrollbar = 0;
+                updateScrollbar(player);
+                break;
+        }
     }
     else if (bn::keypad::up_pressed())
     {
@@ -487,6 +703,9 @@ void game_controller::update(player_struct& player, data_strings& data_strings)
                 break;
             case 1:
                 drawTab2(player, data_strings);
+                break;
+            case 2:
+                drawTab3(player, data_strings);
                 break;
         }
     }
@@ -501,19 +720,29 @@ void game_controller::update(player_struct& player, data_strings& data_strings)
             case 1:
                 drawTab2(player, data_strings);
                 break;
+            case 2:
+                drawTab3(player, data_strings);
+                break;
         }
     }
     else if (bn::keypad::r_pressed())
     {
         if (incrementActiveTab())
         {
+            for (auto& v : scroll_values)
+            {
+                v = 0;
+            }
             switch (activeTab)
             {
                 case 1:
                     highlightedScrollbar = 0;
+                    // BN_LOG("scroll: ", scroll_values[0], ", ", scroll_values[1]);
                     drawTab2(player, data_strings);
                     break;
                 case 2:
+                    highlightedScrollbar = 1;
+                    // BN_LOG("scroll: ", scroll_values[0], ", ", scroll_values[1]);
                     drawTab3(player, data_strings);
                     break;
                 // case 3:
@@ -526,6 +755,10 @@ void game_controller::update(player_struct& player, data_strings& data_strings)
     {
         if (decrementActiveTab())
         {
+            for (auto& v : scroll_values)
+            {
+                v = 0;
+            }
             switch (activeTab)
             {
                 case 0:
@@ -537,6 +770,7 @@ void game_controller::update(player_struct& player, data_strings& data_strings)
                     drawTab2(player, data_strings);
                     break;
                 case 2:
+                    highlightedScrollbar = 1;
                     drawTab3(player, data_strings);
                     break;
             }
@@ -551,55 +785,14 @@ unsigned short game_controller::levelUpTime(unsigned short level)
     bn::fixed powered;
     for (int i = 0; i < level; i++)
     {
-        powered *= bn::fixed(1.15f);
+        powered = powered.safe_multiplication(1.15f);
     }
-    return static_cast<unsigned short>(bn::fixed((20.f + powered) * 60.f).round_integer());
+    return static_cast<unsigned short>((20.f + powered).safe_multiplication(60.f).round_integer());
 }
 
 void game_controller::task(bn::string<128> message, unsigned short duration, player_struct& player)
 {
-    int charCount = 0;
-    int length = 0;
-    // BN_LOG("task, begin loop");
-    for (auto c : message)
-    {
-        bool done = false;
-        // BN_LOG("task, char: ", c);
-        for (int i = 0; i < (sizeof(font_regular_chars) / sizeof(font_regular_chars[0])); i++)
-        {
-            if (c == font_regular_chars[i])
-            {
-                // BN_LOG("task, utf8: ", i);
-                // BN_LOG("task, width: ", font_regular_widths[i]);
-                if (length + font_regular_widths[i] > 232)
-                {
-                    done = true;
-                }
-                else
-                {
-                    charCount++;
-                    length += font_regular_widths[i];
-                }
-                break;
-            }
-        }
-        if (done)
-        {
-            if (c == ' ')
-            {
-                charCount--;
-            }
-            break;
-        }
-    }
-    // BN_LOG("task, message: ", message);
-    // BN_LOG("task, charCount: ", charCount);
-    // BN_LOG("task, old kill: (", player.kill, ")");
-    bn::string<64> newMessage = (charCount < message.length() ? message.substr(0, charCount-3) : message);
-    if (newMessage.back() == ' ') newMessage.pop_back();
-    BN_LOG("task, msg: ", newMessage);
-    player.kill = newMessage.append("...");
-    // BN_LOG("task, new kill: (", player.kill, ")");
+    player.kill = message;
     player.task_prog.value = 0;
     player.task_prog.max = duration * 60;
 }
@@ -610,33 +803,52 @@ void game_controller::q(progress_struct data, player_struct& player, data_string
     player.message_queue.push_back(data);
     // BN_LOG("crash starts in q");
     dequeueQ(player, data_strings);
+    // BN_LOG("q, dequeueQ done");
 }
 
 void game_controller::dequeueQ(player_struct& player, data_strings& data_strings)
 {
-    // BN_LOG("dequeueQ, player.task_prog.value: ", player.task_prog.value, " player.task_prog.max: ", player.task_prog.max);
+    BN_LOG("dequeueQ, player.task_prog: ", player.task_prog.value, " / ", player.task_prog.max);
+    BN_LOG("dequeueQ, player.task_data: ", player.task_data.caption);
     while (player.task_prog.value >= player.task_prog.max)
     {
         // BN_LOG("dequeueQ, begin loop");
-        // BN_LOG("dequeueQ, player.task_data.caption: ", player.task_data.caption);
+        BN_LOG("\ndequeueQ, player.task_data.caption: ", player.task_data.caption);
         if (split(player.task_data.caption, 0) == "kill")
         {
-            if (split(player.task_data.caption, 3) == "*")
+            if (split(player.task_data.caption, 2) == "*")
             {
                 winItem(player, data_strings);
             }
-            else if (split(player.task_data.caption, 3).c_str() != "")
+            else if (split(player.task_data.caption, 2) != "")
             {
-                player.inventory.push_back(player.task_data.reward.value());
+                bool hasItem = false;
+                for (auto& i : player.inventory)
+                {
+                    BN_LOG("i: ", i.id, ", task_data: ", player.task_data.caption, ", split(player.task_data.caption, 2): ", split(player.task_data.caption, 2), ", split(player.task_data.caption, 3): ", split(player.task_data.caption, 3));
+                    BN_LOG("i: ", i.id, ", task_data_reward: ", player.task_data.reward.has_value() ? player.task_data.reward.value().id : 999);
+                    if (i.id == player.task_data.reward.value().id && i.typeId == player.task_data.reward.value().typeId && i.ofId == player.task_data.reward.value().ofId)
+                    {
+                        i.count++;
+                        hasItem = true;
+                    }
+                }
+                if (hasItem == false)
+                {
+                    player.inventory.push_back(player.task_data.reward.value());
+                }
             }
         }
         else if (player.task_data.caption == "buying")
         {
+            BN_LOG("begin buying");
+            BN_LOG("buying, player.inventory[0].count: ", player.inventory[0].count, ", equipPrice(player): ", equipPrice(player));
             player.inventory[0].count -= equipPrice(player);
             winEquip(player, data_strings);
         }
         else if (player.task_data.caption == "market" || player.task_data.caption == "sell")
         {
+            BN_LOG("begin market | sell: ", player.task_data.caption);
             if (player.task_data.caption == "sell")
             {
                 auto value = player.inventory[player.inventory.size() - 1].count * player.level;
@@ -650,7 +862,8 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
             if (player.inventory.size() > 1)
             {
                 auto item = player.inventory[player.inventory.size() - 1];
-                task(bn::string<128>("Selling ").append(indefinite(item.typeId == item_struct::boring ? data_strings.items_boring[item.id] : data_strings.items_monster[item.id], player.inventory[player.inventory.size() - 1].count)), 1, player);
+                bn::string<32> item_name = buildItemName(item, data_strings);
+                task(bn::string<128>("Selling ").append(indefinite(item_name, player.inventory[player.inventory.size() - 1].count)), 1, player);
                 player.task_data.caption = "sell";
                 break;
             }
@@ -659,7 +872,7 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
         player.task_data.caption = "";
         if (player.message_queue.size() > 0)
         {
-            // BN_LOG("dequeueQ, player.message_queue.front().message: ", player.message_queue.front().message);
+            BN_LOG("dequeueQ, player.message_queue.front().message: ", player.message_queue.front().message);
             auto a = player.message_queue.front().typeId;
             auto n = player.message_queue.front().duration;
             auto s = player.message_queue.front().message;
@@ -682,11 +895,13 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
         }
         else if (player.enc.value >= player.enc.max)
         {
+            BN_LOG("dequeueQ, player.enc: ", player.enc.value, ", player.enc.max: ", player.enc.max);
             task("Heading to market to sell loot", 4, player);
             player.task_data.caption = "market";
         }
-        else if (old.find("kill|") <= 0 && (old.c_str() != "heading"))
+        else if (old.find("kill|") <= 0 && (old != "heading"))
         {
+            BN_LOG("dequeueQ, player.enc: ", player.enc.value, ", player.enc.max: ", player.enc.max);
             if (player.inventory[0].count > equipPrice(player))
             {
                 task("Negotiating purchase of better equipment", 5, player);
@@ -700,13 +915,14 @@ void game_controller::dequeueQ(player_struct& player, data_strings& data_strings
         }
         else
         {
+            BN_LOG("dequeueQ, else");
             auto n = player.level;
             auto l = n;
             auto s = monsterTask(n, player, data_strings);
-            task("Executing " + s, (6 * n) / l, player);
+            task("Executing " + s, bn::fixed(6).safe_multiplication(n).safe_division(l).round_integer(), player);
         }
     }
-    // BN_LOG("dequeueQ, end loop");
+    BN_LOG("dequeueQ, end loop");
 }
 
 void game_controller::completeAct(player_struct& player, data_strings& data_strings)
@@ -764,7 +980,7 @@ void game_controller::completeQuest(player_struct& player, data_strings& data_st
                 if (i == 1 || (bn::abs(l - player.level) < bn::abs(lev - player.level)))
                 {
                     lev = l;
-                    player.quest_data.caption = m;
+                    player.quest_data.caption = split(m, 0);
                     player.quest_data.tag = montag;
                 }
             }
@@ -792,12 +1008,10 @@ void game_controller::completeQuest(player_struct& player, data_strings& data_st
         }
         case 4:
         {
-            bn::string<128> m;
             int lev = 0;
             for (int i = 1; i < 3; i++)
             {
                 auto montag = player.rng.get_unbiased_int(data_strings.items_monster.size());
-                m = data_strings.items_monster[montag];
                 auto l = data_strings.items_monster_val[montag];
                 if (i == 1 || (bn::abs(l - player.level) < bn::abs(lev - player.level)))
                 {
@@ -812,13 +1026,13 @@ void game_controller::completeQuest(player_struct& player, data_strings& data_st
     saveGame(player);
 }
 
-bn::string<128> game_controller::monsterTask(unsigned short& monster_level, player_struct &player, data_strings &data_strings)
+bn::string<128> game_controller::monsterTask(unsigned short& monster_level, player_struct& player, data_strings& data_strings)
 {
     bool definite = false;
     tq_struct monster = tq_struct("", 0);
     unsigned short lev = 0;
     unsigned short count = 0;
-    for (int i = monster_level; i > -1; i--)
+    for (int i = monster_level; i > 0; i--)
     {
         if (player.rng.get_unbiased_int(5) < 2)
         {
@@ -834,55 +1048,78 @@ bn::string<128> game_controller::monsterTask(unsigned short& monster_level, play
 
     if (player.rng.get_unbiased_int(25) < 1)
     {
+        BN_LOG("monsterTask, player.rng.get_unbiased_int(25) < 1");
         // Original documentation:
         // use an NPC every once in a while
         monster.caption = bn::string<128>(" ").append(data_strings.races[player.rng.get_unbiased_int(data_strings.races.size())]);
+        BN_LOG("monsterTask, monster.caption: ", monster.caption);
         if (player.rng.get_unbiased_int(2) < 1)
         {
-            monster.caption = bn::string<128>("passing").append(monster.caption).append(data_strings.races[player.rng.get_unbiased_int(data_strings.races.size())]).append(" ").append(bn::to_string<128>(player.rng.get_unbiased_int(data_strings.classes.size())));
+            BN_LOG("monsterTask, player.rng.get_unbiased_int(2) < 1");
+            monster.caption = bn::string<128>("passing").append(monster.caption).append(" ").append(data_strings.classes[player.rng.get_unbiased_int(data_strings.classes.size())]);
+            BN_LOG("monsterTask, monster.caption: ", monster.caption);
         }
         else
         {
+            BN_LOG("monsterTask, player.rng.get_unbiased_int(2) > 1, else");
             monster.caption = bn::string<128>(data_strings.titles[player.rng.get_unbiased_int(data_strings.titles.size())]).append(" " + generateName(player) + " the").append(monster.caption);
+            BN_LOG("monsterTask, monster.caption: ", monster.caption);
             definite = true;
         }
         lev = monster_level;
-        monster.reward = item_struct(0, item_struct::gold);
+        monster.caption = monster.caption.append("|*");
+        BN_LOG("monsterTask, monster.caption: ", monster.caption);
+        monster.reward.reset();
     }
-    else if (player.quest_data.caption == "" && player.rng.get_unbiased_int(4) < 1)
+    else if (player.quest_data.caption != "" && player.rng.get_unbiased_int(4) < 1)
     {
+        BN_LOG("monsterTask, player.quest_data.caption == \"\" && player.rng.get_unbiased_int(4) < 1");
         // Original documentation:
         // use the quest monster
         monster.caption = data_strings.items_monster[player.quest_data.tag];
         lev = data_strings.items_monster_val[monster.tag];
-        monster.reward = item_struct(player.quest_data.tag, item_struct::monster, 0, 0, lev, monster.reward->count);
+        monster.reward = item_struct(player.quest_data.tag, item_struct::monster, 0, 0, lev);
+        BN_LOG("monsterTask, monster.caption: ", monster.caption, " monster.reward: ", monster.reward.get()->typeId);
     }
     else
     {
+        BN_LOG("monsterTask, else\n\n");
         // Original documentation:
         // pick the monster out of so many random ones closest to the level we want
-        monster.caption = data_strings.items_monster[player.rng.get_unbiased_int(data_strings.items_monster.size())];
+        auto t = player.rng.get_unbiased_int(data_strings.items_monster.size());
+        monster.caption = data_strings.items_monster[t];
+        monster.tag = data_strings.items_monster_val[t];
+        monster.reward = item_struct(t, item_struct::monster, 0, 0, lev);
         lev = monster.tag;
         auto i = 5;
         while (i > 0)
         {
+            BN_LOG("monsterTask, i: ", i);
             auto m1 = player.rng.get_unbiased_int(data_strings.items_monster.size());
+            BN_LOG("monsterTask, m1: ", m1);
+            BN_LOG("monsterTask, data_strings.items_monster_val[m1]: ", data_strings.items_monster_val[m1]);
+            BN_LOG("monsterTask\n - bn::abs(monster_level - data_strings.items_monster_val[m1]): ", bn::abs(monster_level - data_strings.items_monster_val[m1]), "\n - bn::abs(monster_level - lev): ", bn::abs(monster_level - lev), "\n - bn::abs(monster_level - data_strings.items_monster_val[m1]) < bn::abs(monster_level - lev): ", bn::abs(monster_level - data_strings.items_monster_val[m1]) < bn::abs(monster_level - lev));
             if (bn::abs(monster_level - data_strings.items_monster_val[m1]) < bn::abs(monster_level - lev))
             {
+                BN_LOG("monsterTask, monster");
                 monster.caption = data_strings.items_monster[m1];
                 monster.tag = data_strings.items_monster_val[m1];
+                monster.reward = item_struct(m1, item_struct::monster, 0, 0, lev);
+                BN_LOG("monsterTask, monster.reward: ", monster.reward.get()->typeId);
                 lev = m1;
             }
             if (i > 0)
             {
+                BN_LOG("monsterTask, i > 0");
                 i--;
+                BN_LOG("monsterTask, new i: ", i);
             }
         }
-        monster.reward = item_struct(player.quest_data.tag, item_struct::monster, 0, 0, lev, monster.reward->count);
+        BN_LOG("monsterTask, monster.caption: ", monster.caption, ", monster.reward.id: ", monster.reward.has_value() ? monster.reward.get()->id : 999);
     }
 
     player.task_data = monster;
-    bn::string<128> out = monster.caption;
+    bn::string<128> out = split(monster.caption, 0);
     player.task_data.caption = bn::string<128>("kill|").append(player.task_data.caption);
 
     count = 1;
@@ -891,10 +1128,12 @@ bn::string<128> game_controller::monsterTask(unsigned short& monster_level, play
         // Original documentation:
         // lev is too low. multiply...
         count = (monster_level + player.rng.get_unbiased_int(lev)) / bn::max<unsigned short>(lev, 1);
+        BN_LOG("monsterTask, count: ", count);
         if (count < 1)
         {
             count = 1;
         }
+        BN_LOG("monsterTask, count after: ", count);
         monster_level /= count;
     }
 
@@ -946,39 +1185,42 @@ bn::string<128> game_controller::monsterTask(unsigned short& monster_level, play
     return out;
 }
 
-bn::string<128> game_controller::split(bn::string<128>& s, int field, char seperator)
+bn::string<128> game_controller::split(bn::string<128> s, int field, char seperator)
 {
+    // BN_LOG("\n - sep: ", s.find(seperator));
     int p = 0;
     while (field > 0)
     {
-        p = s.find(seperator);
+        // BN_LOG("\n - pre field s: ", s, "\n - sep: ", s.find(seperator) ? s.find(seperator) : -1);
+        p = s.find(seperator) ? s.find(seperator) : -1;
+        // BN_LOG("\n - pre p: ", p, "\n - s.substr: ", s.substr(p + 1));
         s = s.substr(p + 1);
         field--;
-        BN_LOG("p: ", p, ", s: ", s, ", field: ", field);
+        // BN_LOG("\n - pos field s: ", s, "\n - p: ", p, "\n - field: ", field);
     }
     if (s.find(seperator) > 0)
     {
-        BN_LOG("s.substr: ", s.substr(1, s.find(seperator) - 1));
-        return s.substr(1, s.find(seperator) - 1);
+        // BN_LOG("\n - s.find s: ", s.substr(0, s.find(seperator)));
+        return s.substr(0, s.find(seperator));
     }
     else
     {
-        BN_LOG("s: ", s);
+        // BN_LOG("\n - else s: ", s);
         return s;
     }
 }
 
-bn::string<128> game_controller::split(bn::string<128>& s, int field)
+bn::string<128> game_controller::split(bn::string<128> s, int field)
 {
     return split(s, field, '|');
 }
 
-bn::string<128> game_controller::toLower(bn::string<128>& s)
+bn::string<32> game_controller::toLower(bn::string<32>& s)
 {
     // Stolen from StackOverflow
     const unsigned int diff = 'a' - 'A';
 
-    bn::string<128> lower;
+    bn::string<32> lower = "";
 
     for (int i = 0; i < s.size(); i++)
     {
@@ -988,19 +1230,12 @@ bn::string<128> game_controller::toLower(bn::string<128>& s)
     return lower;
 }
 
-bn::string<128> game_controller::toUpper(bn::string<128>& s)
+bn::string<128> game_controller::toProper(bn::string<128>& s)
 {
-    // Stolen from StackOverflow
     const unsigned int diff = 'a' - 'A';
-
-    bn::string<128> upper;
-
-    for (int i = 0; i < s.size(); i++)
-    {
-        upper += (s[i] >= 'a' && s[i] <= 'z') ? s[i] - diff : s[i];
-    }
-
-    return upper;
+    bn::string<128> proper = "";
+    proper += ((s[0] >= 'a' && s[0] <= 'z') ? s[0] - diff : s[0]);
+    return proper.append(s.substr(1));
 }
 
 bn::string<128> game_controller::indefinite(const bn::string<128>& s, unsigned short count)
@@ -1067,25 +1302,68 @@ bn::string<128> game_controller::plural(const bn::string<128>& s)
 
 bn::string<128> game_controller::generateName(player_struct& player)
 {
-    bn::vector<bn::string<128>, 3> parts;
-    parts.push_back("br|cr|dr|fr|gr|j|kr|l|m|n|pr||||r|sh|tr|v|wh|x|y|z");
-    parts.push_back("a|a|e|e|i|i|o|o|u|u|ae|ie|oo|ou");
-    parts.push_back("b|ck|d|g|k|m|n|p|t|v|x|z");
+    BN_LOG("Generating name");
+    bn::vector<bn::vector<bn::string<2>, 22>, 3> parts;
+    parts.push_back(bn::vector<bn::string<2>, 22>());
+    parts.push_back(bn::vector<bn::string<2>, 22>());
+    parts.push_back(bn::vector<bn::string<2>, 22>());
+
+    parts[0].push_back("br");
+    parts[0].push_back("cr");
+    parts[0].push_back("dr");
+    parts[0].push_back("fr");
+    parts[0].push_back("gr");
+    parts[0].push_back("j");
+    parts[0].push_back("kr");
+    parts[0].push_back("l");
+    parts[0].push_back("m");
+    parts[0].push_back("n");
+    parts[0].push_back("pr");
+    parts[0].push_back("");
+    parts[0].push_back("");
+    parts[0].push_back("");
+    parts[0].push_back("r");
+    parts[0].push_back("sh");
+    parts[0].push_back("tr");
+    parts[0].push_back("v");
+    parts[0].push_back("wh");
+    parts[0].push_back("x");
+    parts[0].push_back("y");
+    parts[0].push_back("z");
+    parts[1].push_back("a");
+    parts[1].push_back("a");
+    parts[1].push_back("e");
+    parts[1].push_back("e");
+    parts[1].push_back("i");
+    parts[1].push_back("i");
+    parts[1].push_back("o");
+    parts[1].push_back("o");
+    parts[1].push_back("u");
+    parts[1].push_back("u");
+    parts[1].push_back("ae");
+    parts[1].push_back("ie");
+    parts[1].push_back("oo");
+    parts[1].push_back("ou");
+    parts[2].push_back("b");
+    parts[2].push_back("ck");
+    parts[2].push_back("d");
+    parts[2].push_back("g");
+    parts[2].push_back("k");
+    parts[2].push_back("m");
+    parts[2].push_back("n");
+    parts[2].push_back("p");
+    parts[2].push_back("t");
+    parts[2].push_back("v");
+    parts[2].push_back("x");
+    parts[2].push_back("z");
 
     bn::string<128> s = "";
     for (int i = 0; i < 6; i++)
     {
-        auto count = 1;
-        for (int j = 0; j < s.length(); j++)
-        {
-            if (parts[i % 3][j] == '|')
-            {
-                count++;
-            }
-        }
-        s += split(s, player.rng.get_unbiased_int(count));
+        auto k = parts[i % 3];
+        s = s.append(k[player.rng.get_unbiased_int(k.size())]);
     }
-    return toUpper(s);
+    return toProper(s);
 }
 
 bn::string<128> game_controller::sick(int m, bn::string<128> s)
@@ -1211,7 +1489,7 @@ item_struct game_controller::boringItem(player_struct& player, data_strings& dat
 void game_controller::winItem(player_struct& player, data_strings& data_strings)
 {
     int n = player.rng.get_unbiased_int(999);
-    if ((250 > n ? 255 : n) < player.inventory.size())
+    if ((250 > n ? 250 : n) < player.inventory.size())
     {
         player.inventory[player.rng.get_unbiased_int(player.inventory.size())].count++;
     }
@@ -1230,26 +1508,27 @@ void game_controller::winItem(player_struct& player, data_strings& data_strings)
     }
 }
 
-equipment_struct game_controller::lPick(bn::vector<bn::string_view, 38>& equipment, bn::vector<short, 1> equipment_val, int goal, player_struct& player)
+equipment_struct game_controller::lPick(bn::vector<bn::string_view, 38>& equipment, bn::vector<short, 38>& equipment_val, int goal, player_struct& player)
 {
+    BN_LOG("lPick");
     unsigned short item_id = player.rng.get_unbiased_int(equipment.size());
-    unsigned short item_t;
     short item_val = equipment_val[item_id];
-    short item_t_val;
-    for (int i = 1; i < 5; i++)
+    for (int i = 0; i < 5; i++)
     {
-        item_t = player.rng.get_unbiased_int(equipment.size());
-        item_t_val = equipment_val[item_t];
+        unsigned short item_t = player.rng.get_unbiased_int(equipment.size());
+        short item_t_val = equipment_val[item_t];
         if ((goal - item_val) > (goal - item_t_val))
         {
             return equipment_struct(item_t, equipment_struct::weapon);
         }
     }
+    BN_LOG("lPick done");
     return equipment_struct(item_id, equipment_struct::weapon);;
 }
 
 void game_controller::winEquip(player_struct& player, data_strings& data_strings)
 {
+    BN_LOG("winEquip");
     int posn = player.rng.get_unbiased_int(player.equipment.size());
     bn::vector<bn::string_view, 38>& stuff = data_strings.equipment_armour;
     bn::vector<short, 38>& stuff_val = data_strings.equipment_armour_val;
@@ -1266,27 +1545,63 @@ void game_controller::winEquip(player_struct& player, data_strings& data_strings
         worse = data_strings.equipment_off_bad;
         worse_val = data_strings.equipment_off_bad_val;
     }
-    else
+    else if (posn == 1)
     {
-        if (posn == 1)
-        {
-            stuff = data_strings.equipment_shield;
-            stuff_val = data_strings.equipment_shield_val;
-        }
+        stuff = data_strings.equipment_shield;
+        stuff_val = data_strings.equipment_shield_val;
     }
+    BN_LOG("lPick start");
     equipment_struct item = lPick(stuff, stuff_val, player.level, player);
+    switch (posn)
+    {
+        case 0:
+            item.modifierEquipTypeId = equipment_struct::weapon;
+            break;
+        case 1:
+            item.modifierEquipTypeId = equipment_struct::shield;
+            break;
+        default:
+            item.modifierEquipTypeId = equipment_struct::armour;
+            break;
+    }
     short qual = stuff_val[item.equipId];
     int plus = player.level - qual;
     if (plus < 0)
     {
+        BN_LOG("better: ", better.size());
+        BN_LOG("worse: ", worse.size());
         better = worse;
+        better_val = worse_val;
+        BN_LOG("better after: ", better.size());
+        BN_LOG("worse after: ", worse.size());
+        item.modifierTypeId1 = equipment_struct::bad;
+        item.modifierTypeId2 = equipment_struct::bad;
     }
     int count = 0;
     while ((count < 2) && (plus != 0))
     {
-        item.modifierId = player.rng.get_unbiased_int(better.size());
-        qual = better_val[player.rng.get_unbiased_int(better_val.size())];
-        if (plus < qual)
+        if (count == 0)
+        {
+            item.modifierId1 = player.rng.get_unbiased_int(better.size());
+            qual = better_val[item.modifierId1];
+        }
+        else
+        {
+            item.modifierId2 = player.rng.get_unbiased_int(better.size());
+            qual = better_val[item.modifierId2];
+        }
+        if (item.modifierId1 == item.modifierId2)
+        {
+            // Original documentation:
+            // no repeats
+            item.hasModifier2 = false;
+            break;
+        }
+        else
+        {
+            item.hasModifier2 = true;
+        }
+        if (bn::abs(plus) < bn::abs(qual))
         {
             // Original documentation:
             // too much
@@ -1295,8 +1610,28 @@ void game_controller::winEquip(player_struct& player, data_strings& data_strings
         plus -= qual;
         count++;
     }
+    BN_LOG("better_val[item.modifierId1]: ", better_val[item.modifierId1], ", better_val[item.modifierId2]: ", better_val[item.modifierId2], ", better_val[item.modifierId1] + better_val[item.modifierId2]: ", better_val[item.modifierId1] + better_val[item.modifierId2]);
+    item.plusMinus = better_val[item.modifierId1] + better_val[item.modifierId2];
+    switch (item.baseEquipTypeId)
+    {
+        case equipment_struct::weapon:
+            BN_LOG("item.plusMinus: ", item.plusMinus, ", data_strings.equipment_weapon_val[item.equipId]: ", data_strings.equipment_weapon_val[item.equipId], ", item.plusMinus + data_strings.equipment_weapon_val[item.equipId]: ", item.plusMinus + data_strings.equipment_weapon_val[item.equipId]);
+            item.plusMinus += data_strings.equipment_weapon_val[item.equipId];
+            break;
+        case equipment_struct::shield:
+            BN_LOG("item.plusMinus: ", item.plusMinus, ", data_strings.equipment_shield_val[item.equipId]: ", data_strings.equipment_shield_val[item.equipId], ", item.plusMinus + data_strings.equipment_shield_val[item.equipId]: ", item.plusMinus + data_strings.equipment_shield_val[item.equipId]);
+            item.plusMinus += data_strings.equipment_shield_val[item.equipId];
+            break;
+        case equipment_struct::armour:
+            BN_LOG("item.plusMinus: ", item.plusMinus, ", data_strings.equipment_armour_val[item.equipId]: ", data_strings.equipment_armour_val[item.equipId], ", item.plusMinus + data_strings.equipment_armour_val[item.equipId]: ", item.plusMinus + data_strings.equipment_armour_val[item.equipId]);
+            item.plusMinus += data_strings.equipment_armour_val[item.equipId];
+            break;
+        case equipment_struct::dummy:
+            break;
+    }
 
     player.equipment[posn] = item;
+    BN_LOG("winEquip done");
 }
 
 unsigned short game_controller::equipPrice(player_struct& player)
@@ -1346,9 +1681,13 @@ void game_controller::winStat(player_struct& player, data_strings& data_strings)
         }
     }
     player.stats[i]++;
+    if (i == 0)
+    {
+        player.enc.max = player.stats[0] + 10;
+    }
 }
 
-void game_controller::interplotCinematic(player_struct &player, data_strings &data_strings)
+void game_controller::interplotCinematic(player_struct& player, data_strings& data_strings)
 {
     switch (player.rng.get_unbiased_int(3))
     {
@@ -1399,7 +1738,7 @@ void game_controller::interplotCinematic(player_struct &player, data_strings &da
     q(progress_struct(progress_struct::plot, 2, "Loading"), player, data_strings);
 }
 
-bn::string<128> game_controller::namedMonster(player_struct &player, data_strings &data_strings, unsigned short monster_level)
+bn::string<128> game_controller::namedMonster(player_struct& player, data_strings &data_strings, unsigned short monster_level)
 {
     int lev = 0;
     bn::string<128> m;
@@ -1438,7 +1777,8 @@ bn::string<128> game_controller::impressiveGuy(player_struct &player, data_strin
 
 void game_controller::start(player_struct& player, data_strings& data_strings)
 {
-    player.exp.value = levelUpTime(1);
+    player.exp.max = levelUpTime(1);
+
     player.task_data.caption = "load";
     player.quest_data.caption = "";
     player.message_queue.clear();
@@ -1458,6 +1798,7 @@ void game_controller::start(player_struct& player, data_strings& data_strings)
 
 void game_controller::tick(player_struct &player, data_strings &data_strings)
 {
+    // BN_LOG("tick begin");
     auto gain = player.task_data.caption.find("kill|") == 1;
     if (player.task_prog.value >= player.task_prog.max)
     {
@@ -1471,7 +1812,8 @@ void game_controller::tick(player_struct &player, data_strings &data_strings)
             }
             else
             {
-                player.exp.value = bn::fixed(player.task_prog.value / 60.f).round_integer();
+                // BN_LOG("tick, player.task_prog.value xp: ", player.task_prog.value);
+                player.exp.value = bn::fixed(player.task_prog.value).safe_division(60.f).round_integer();
             }
         }
 
@@ -1485,30 +1827,35 @@ void game_controller::tick(player_struct &player, data_strings &data_strings)
             }
             else if (player.quest_queue.size() > 1)
             {
-                player.task_prog.value += bn::fixed(player.task_prog.max / 60.f).round_integer();
+                // BN_LOG("tick, player.task_prog.value advance: ", player.task_prog.value);
+                player.task_prog.value += bn::fixed(player.task_prog.max).safe_division(60.f).round_integer();
+                player.task_prog.value = bn::max<unsigned short>(player.task_prog.value, player.task_prog.max);
             }
         }
 
         // Original documentation:
-        // advance plot_prog
+        // advance plot
         if (gain && player.plot_prog.value >= player.plot_prog.max)
         {
             interplotCinematic(player, data_strings);
         }
-        else if (player.task_data.caption.c_str() != "load")
+        else if (player.task_data.caption != "load")
         {
-            player.plot_prog.value = bn::min<unsigned short>(player.plot_prog.value + bn::fixed(player.task_prog.max / 60.f).round_integer(), player.plot_prog.max);
+            // BN_LOG("tick, player.task_prog.value load: ", player.task_prog.value);
+            player.plot_prog.value = bn::min<unsigned short>(player.plot_prog.value + bn::fixed(player.task_prog.max).safe_division(60.f).round_integer(), player.plot_prog.max);
         }
 
         // BN_LOG("crash starts in tick");
         dequeueQ(player, data_strings);
+        // BN_LOG("tick, dequeueQ done");
     }
     else
     {
-        BN_LOG("player.task_prog.value: ", player.task_prog.value);
-        BN_LOG("player.quest_prog.value: ", player.quest_prog.value);
-        BN_LOG("player.plot_prog.value: ", player.plot_prog.value);
-        player.task_prog.value += player.elapsed;
+        // BN_LOG("player.task_prog.value: ", player.task_prog.value);
+        // BN_LOG("player.quest_prog.value: ", player.quest_prog.value);
+        // BN_LOG("player.plot_prog.value: ", player.plot_prog.value);
+        player.task_prog.value += 1 + bn::core::last_missed_frames();
+        player.task_prog.value = bn::min<unsigned short>(player.task_prog.value, player.task_prog.max);
         player.elapsed = 0;
         updateLists(player, data_strings);
         switch (activeTab)

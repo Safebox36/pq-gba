@@ -39,7 +39,10 @@ class game_controller
 
         bn::vector<bn::string<32>, 61> spell_list;
         bn::vector<short, 11> spell_levels;
-        bn::vector<bn::string<32>, 33> equip_list;
+        bn::vector<bn::string<32>, 44> equip_list;
+        bn::vector<bn::sprite_ptr, 30> task_prog_bar;
+        bn::vector<bn::sprite_ptr, 29> sub_prog_bar_a;
+        bn::vector<bn::sprite_ptr, 29> sub_prog_bar_b;
 
         int lerp(bn::fixed v0, bn::fixed v1, bn::fixed t);
 
@@ -51,6 +54,7 @@ class game_controller
 
         void updateScrollbar(player_struct& player);
         void updateLists(player_struct& player, data_strings& data_strings);
+        bn::string<64> clipKill(player_struct& player);
         void drawTab1(player_struct& player, data_strings& data_strings);
         void drawTab2(player_struct& player, data_strings& data_strings);
         void drawTab3(player_struct& player, data_strings& data_strings);
@@ -58,6 +62,7 @@ class game_controller
 
         bool rome(unsigned int& n, unsigned int dn, bn::string<7>& s, bn::string<7> ds);
         bn::string<7> intToRome(unsigned int n);
+        bn::string<32> buildItemName(const item_struct& item, data_strings& data_strings);
 
         unsigned short levelUpTime(unsigned short level);
         void task(bn::string<128> message, unsigned short duration, player_struct& player);//, unsigned short level);
@@ -66,10 +71,10 @@ class game_controller
         void completeAct(player_struct& player, data_strings& data_strings);
         void completeQuest(player_struct& player, data_strings& data_strings);
         bn::string<128> monsterTask(unsigned short& monster_level, player_struct& player, data_strings& data_strings);
-        bn::string<128> split(bn::string<128>& s, int field, char seperator);
-        bn::string<128> split(bn::string<128>& s, int field);
-        bn::string<128> toLower(bn::string<128>& s);
-        bn::string<128> toUpper(bn::string<128>& s);
+        bn::string<128> split(bn::string<128> s, int field, char seperator);
+        bn::string<128> split(bn::string<128> s, int field);
+        bn::string<32> toLower(bn::string<32>& s);
+        bn::string<128> toProper(bn::string<128>& s);
         bn::string<128> indefinite(const bn::string<128>& s, unsigned short count);
         bn::string<128> definite(const bn::string<128>& s, unsigned short count);
         bn::string<128> plural(const bn::string<128>& s);
@@ -82,7 +87,7 @@ class game_controller
         item_struct interestingItem(player_struct& player, data_strings& data_strings);
         item_struct boringItem(player_struct& player, data_strings& data_strings);
         void winItem(player_struct& player, data_strings& data_strings);
-        equipment_struct lPick(bn::vector<bn::string_view, 38>& equipment, bn::vector<short, 1> equipment_val, int goal, player_struct& player);
+        equipment_struct lPick(bn::vector<bn::string_view, 38>& equipment, bn::vector<short, 38>& equipment_val, int goal, player_struct& player);
         void winEquip(player_struct& player, data_strings& data_strings);
         unsigned short equipPrice(player_struct& player);
         void winSpell(player_struct& player, data_strings& data_strings);

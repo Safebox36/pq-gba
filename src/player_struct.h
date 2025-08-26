@@ -17,12 +17,12 @@ struct player_struct
 {
     unsigned short race_id = 0;
     unsigned short class_id = 0;
-    unsigned short level = 0;
+    unsigned short level = 1;
 
     bn::vector<unsigned int, 8> stats = bn::vector<unsigned int, 8>();
     bn::vector<spell_struct, 45> spells = bn::vector<spell_struct, 45>();
     bn::vector<equipment_struct, 11> equipment = bn::vector<equipment_struct, 11>();
-    bn::vector<item_struct, 1> inventory = bn::vector<item_struct, 1>();
+    bn::vector<item_struct, 255> inventory = bn::vector<item_struct, 255>();
 
     tq_struct task_data = tq_struct("", 0);
     tq_struct quest_data = tq_struct("", 0);
@@ -34,10 +34,11 @@ struct player_struct
     bn::deque<quest_struct, 16> quest_queue = bn::deque<quest_struct, 16>();
     bn::deque<quest_struct, 16> plot_queue = bn::deque<quest_struct, 16>();
     bn::deque<progress_struct, 8> message_queue = bn::deque<progress_struct, 8>();
-    bn::string<64> kill = bn::string<64>();
+    bn::string<128> kill = bn::string<128>();
 
     bn::random rng = bn::random();
     unsigned char elapsed = 0;
+    unsigned char ticker_offset = 0;
 
     player_struct()
     {
@@ -59,6 +60,7 @@ struct player_struct
         {
             stats[6 + i] = (bn::fixed(stats[2 + i] / 6.f) + rng.get_unbiased_int(8)).round_integer();
         }
+        enc.max = stats[0] + 10;
     }
 
     void generateNewSeed()

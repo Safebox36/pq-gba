@@ -66,7 +66,7 @@ class data_strings
             classes.push_back("Mage Illusioner");
             classes.push_back("Shiv-Knight");
             classes.push_back("Inner Mason");
-            classes.push_back("Fighter|Organist");
+            classes.push_back("Fighter/Organist");
             classes.push_back("Puma Burgular");
             classes.push_back("Runeloremaster");
             classes.push_back("Hunter Strangler");
