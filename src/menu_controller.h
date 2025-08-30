@@ -15,6 +15,7 @@ class menu_controller
         bn::optional<bn::regular_bg_ptr> menu_main;
         bn::vector<bn::sprite_ptr, 5> button_new;
         bn::vector<bn::sprite_ptr, 5> button_load;
+        bn::vector<bn::sprite_ptr, 2> trademarks;
         bn::vector<bn::sprite_ptr, 4> text_sprites;
         bn::optional<bn::sprite_text_generator> text_generator;
 

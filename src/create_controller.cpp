@@ -248,7 +248,6 @@ void create_controller::updateLabels(player_struct& player, data_strings& data_s
     }
 }
 
-
 void create_controller::drawTab1(player_struct& player, data_strings& data_strings)
 {
     active_background->set_item(background_1.value());

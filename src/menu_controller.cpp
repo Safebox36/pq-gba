@@ -9,6 +9,7 @@
 #include "bn_regular_bg_animate_actions.h"
 #include "bn_sprite_ptr.h"
 #include "bn_sprite_items_spr_button.h"
+#include "bn_sprite_items_spr_tm.h"
 #include "bn_sprite_text_generator.h"
 #include "font.h"
 
@@ -46,6 +47,12 @@ void menu_controller::enter()
         button_new[i].set_top_left_position(116 + (i * 16), 52);
         button_load[i].set_top_left_position(116 + (i * 16), 84);
     }
+
+    trademarks = bn::vector<bn::sprite_ptr, 2>();
+    trademarks.push_back(bn::sprite_items::spr_tm.create_sprite(0));
+    trademarks.push_back(bn::sprite_items::spr_tm.create_sprite(1));
+    trademarks[0].set_top_left_position(2, 2);
+    trademarks[1].set_top_left_position(2, 36);
 
     text_sprites =  bn::vector<bn::sprite_ptr, 4>();
     text_generator = bn::sprite_text_generator(font_regular);
@@ -148,6 +155,7 @@ void menu_controller::exit()
     menu_main.reset();
     button_new.clear();
     button_load.clear();
+    trademarks.clear();
     text_sprites.clear();
     text_generator.reset();
     loading_animation.reset();

@@ -22,7 +22,7 @@ struct player_struct
     bn::vector<unsigned int, 8> stats = bn::vector<unsigned int, 8>();
     bn::vector<spell_struct, 45> spells = bn::vector<spell_struct, 45>();
     bn::vector<equipment_struct, 11> equipment = bn::vector<equipment_struct, 11>();
-    bn::vector<item_struct, 255> inventory = bn::vector<item_struct, 255>();
+    bn::vector<item_struct, 256> inventory = bn::vector<item_struct, 255>();
 
     tq_struct task_data = tq_struct("", 0);
     tq_struct quest_data = tq_struct("", 0);
