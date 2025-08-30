@@ -27,22 +27,22 @@ class game_controller
         bn::optional<bn::rect_window> tabs;
         bn::vector<bn::vector<bn::sprite_ptr, 8>, 4> titles;
         bn::optional<bn::sprite_text_generator> text_generator;
+        bn::optional<bn::sprite_text_generator> bold_text_generator;
         bn::vector<bn::string_view, 4> title_strings;
         bn::optional<bn::sprite_item> scroll;
         bn::vector<bn::sprite_ptr, 4> scrollbars;
         bn::optional<bn::sprite_ptr> scroll_thumb;
         bn::vector<int, 2> scroll_values;
-        bn::vector<bn::vector<bn::sprite_ptr, 16>, 2> player_data;
+        bn::vector<bn::vector<bn::sprite_ptr, 32>, 2> player_data;
         bn::vector<bn::sprite_ptr, 32> player_data_labels;
         bn::vector<bn::sprite_ptr, 16> player_progress;
         bn::vector<bn::point, 2> player_data_default_positions;
 
         bn::vector<bn::string<32>, 61> spell_list;
-        bn::vector<short, 11> spell_levels;
-        bn::vector<bn::string<32>, 44> equip_list;
+        bn::vector<short, 45> spell_levels;
+        bn::vector<bn::string<32>, 55> equip_list;
         bn::vector<bn::sprite_ptr, 30> task_prog_bar;
-        bn::vector<bn::sprite_ptr, 29> sub_prog_bar_a;
-        bn::vector<bn::sprite_ptr, 29> sub_prog_bar_b;
+        bn::vector<bn::sprite_ptr, 29> sub_prog_bars;
 
         int lerp(bn::fixed v0, bn::fixed v1, bn::fixed t);
 
@@ -55,6 +55,7 @@ class game_controller
         void updateScrollbar(player_struct& player);
         void updateLists(player_struct& player, data_strings& data_strings);
         bn::string<64> clipKill(player_struct& player);
+        bn::string<64> clipQuest(bn::string<128>& quest);
         void drawTab1(player_struct& player, data_strings& data_strings);
         void drawTab2(player_struct& player, data_strings& data_strings);
         void drawTab3(player_struct& player, data_strings& data_strings);
@@ -62,9 +63,10 @@ class game_controller
 
         bool rome(unsigned int& n, unsigned int dn, bn::string<7>& s, bn::string<7> ds);
         bn::string<7> intToRome(unsigned int n);
-        bn::string<32> buildItemName(const item_struct& item, data_strings& data_strings);
+        bn::string<64> buildItemName(const item_struct& item, data_strings& data_strings);
 
         unsigned short levelUpTime(unsigned short level);
+        void levelUp(player_struct& player, data_strings& data_strings);
         void task(bn::string<128> message, unsigned short duration, player_struct& player);//, unsigned short level);
         void q(progress_struct data, player_struct& player, data_strings& data_strings);
         void dequeueQ(player_struct& player, data_strings& data_strings);
@@ -73,7 +75,7 @@ class game_controller
         bn::string<128> monsterTask(unsigned short& monster_level, player_struct& player, data_strings& data_strings);
         bn::string<128> split(bn::string<128> s, int field, char seperator);
         bn::string<128> split(bn::string<128> s, int field);
-        bn::string<32> toLower(bn::string<32>& s);
+        bn::string<64> toLower(bn::string<64>& s);
         bn::string<128> toProper(bn::string<128>& s);
         bn::string<128> indefinite(const bn::string<128>& s, unsigned short count);
         bn::string<128> definite(const bn::string<128>& s, unsigned short count);

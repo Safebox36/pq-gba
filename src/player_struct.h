@@ -31,6 +31,7 @@ struct player_struct
     level_struct plot_prog = level_struct(0, 1);
     level_struct exp = level_struct(0, 1);
     level_struct enc = level_struct(0, 1);
+    unsigned short plot_count = 0;
     bn::deque<quest_struct, 16> quest_queue = bn::deque<quest_struct, 16>();
     bn::deque<quest_struct, 16> plot_queue = bn::deque<quest_struct, 16>();
     bn::deque<progress_struct, 8> message_queue = bn::deque<progress_struct, 8>();
